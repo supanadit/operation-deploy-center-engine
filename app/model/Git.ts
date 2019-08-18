@@ -1,12 +1,13 @@
 // Author Supan Adit Pratama <supanadit@gmail.com>
-import { OperatingSystemOperation }         from '../helper/OperatingSystemOperation';
-import { gitRepoStore, gitStore, sshStore } from '../../config/setting';
-import { ShellSecureModel }                 from './ShellSecure';
+import { OperatingSystemOperation }             from '../helper/OperatingSystemOperation';
+import { archiveStore, gitRepoStore, gitStore } from '../../config/setting';
 
 const recursive = require('recursive-readdir-synchronous');
 const fs = require('fs');
+const rimraf = require('rimraf');
 const tomlify = require('tomlify-j0.4');
 const toml = require('toml');
+const ora = require('ora');
 
 export interface GitModel {
     url: string;
@@ -33,7 +34,6 @@ export class Git implements GitModel {
         const url = this.url;
         let isHTTPS = false;
         let isHTTP = false;
-
         // Verify If it HTTPS
         if (url.slice(0, https.length) == https) {
             isHTTPS = true;
@@ -55,6 +55,9 @@ export class Git implements GitModel {
             const splitURL: Array<string> = url.split('/').slice(2);
             this.projectName = splitURL[splitURL.length - 1].split('.')[0];
             this.location = gitRepoStore.concat('/').concat(this.projectName);
+            if (this.isRepositotyExist()) {
+                this.cloned = true;
+            }
         }
     }
 
@@ -74,6 +77,10 @@ export class Git implements GitModel {
         return gitStore.concat('/').concat(this.getProjectName()).concat('.toml');
     }
 
+    getArchiveLocation(): string {
+        return archiveStore.concat('/').concat(this.getProjectName()).concat('.zip');
+    }
+
     clone() {
         if (!this.invalidURL) {
             const myOs: OperatingSystemOperation = new OperatingSystemOperation();
@@ -81,14 +88,43 @@ export class Git implements GitModel {
         }
     }
 
+    compress() {
+        if (!this.invalidURL) {
+            if (this.isExists()) {
+                const myOs: OperatingSystemOperation = new OperatingSystemOperation();
+                myOs.gitZIP(this, true);
+            }
+        }
+    }
+
     isExists(): boolean {
-        const files = recursive(gitStore);
-        const allSSH = files.map((x: any) => {
-            const pathSplit = x.split('/');
-            const fileName = pathSplit[pathSplit.length - 1].split('.');
-            return fileName[0];
-        });
-        return allSSH.some((x: any) => x == this.projectName);
+        return fs.existsSync(this.getConfigFileLocation());
+    }
+
+    isArchiveExist(): boolean {
+        return fs.existsSync(this.getArchiveLocation());
+    }
+
+    isRepositotyExist(): boolean {
+        let result: boolean = false;
+        if (this.getRepositorySaveLocation() != '') {
+            result = fs.existsSync(this.getRepositorySaveLocation());
+        }
+        return result;
+    }
+
+    delete(): void {
+        const spinner = ora(`Pleasewait.. Removing ${this.url}\n`).start();
+        if (this.isExists()) {
+            fs.unlinkSync(this.getConfigFileLocation());
+        }
+        if (this.getRepositorySaveLocation()) {
+            rimraf.sync(this.getRepositorySaveLocation());
+        }
+        if (this.isArchiveExist()) {
+            fs.unlinkSync(this.getArchiveLocation());
+        }
+        spinner.succeed(`Success Removing Git ${this.url}`);
     }
 
     createConfigFile(): boolean {
@@ -98,11 +134,7 @@ export class Git implements GitModel {
                 try {
                     let git: Git = this;
                     const toml = tomlify.toToml(git, {space: 2});
-                    fs.writeFile(this.getConfigFileLocation(), toml, (err: any) => {
-                        if (err == null) {
-                            result = true;
-                        }
-                    });
+                    fs.writeFileSync(this.getConfigFileLocation(), toml);
                 } catch (error) {
                     console.log('Error While Create Config for Git Repository', this.url, 'With Error', error);
                 }

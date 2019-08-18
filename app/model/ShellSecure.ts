@@ -12,6 +12,7 @@ export interface ShellSecureModel {
     username: string;
     password: string;
     port: string;
+    uploadPath: string;
 }
 
 export class ShellSecure implements ShellSecureModel {
@@ -19,6 +20,7 @@ export class ShellSecure implements ShellSecureModel {
     password: string;
     port: string;
     username: string;
+    uploadPath: string;
 
     protected globalMessage: string = 'No Message';
 
@@ -27,6 +29,7 @@ export class ShellSecure implements ShellSecureModel {
         this.password = ssh.password;
         this.port = ssh.port;
         this.username = ssh.username;
+        this.uploadPath = ssh.uploadPath;
     }
 
     isExists(): boolean {
@@ -46,14 +49,7 @@ export class ShellSecure implements ShellSecureModel {
                 let ssh: ShellSecureModel = this;
                 const filename = ssh.host.concat('.toml');
                 const toml = tomlify.toToml(ssh, {space: 2});
-                fs.writeFile(sshStore.concat('/').concat(filename), toml, (err: any) => {
-                    if (err == null) {
-                        this.globalMessage = 'Success Save SSH Account';
-                        result = true;
-                    } else {
-                        this.globalMessage = 'Unknown Error';
-                    }
-                });
+                fs.writeFileSync(sshStore.concat('/').concat(filename), toml);
             } catch (error) {
                 this.globalMessage = 'Unknown Error';
                 console.log('Error While Saving SSH Account for Host', this.host, 'With Error', error);
@@ -66,6 +62,17 @@ export class ShellSecure implements ShellSecureModel {
 
     getMessage(): string {
         return this.globalMessage;
+    }
+
+    static fromConfigFile(hostname: string): ShellSecure | null {
+        const fileName = sshStore.concat('/').concat(hostname).concat('.toml');
+        let ssh: ShellSecure | null = null;
+        if (fs.existsSync(fileName)) {
+            let dataToml: string = fs.readFileSync(fileName, 'utf-8');
+            let sshModel: ShellSecureModel = toml.parse(dataToml);
+            ssh = new ShellSecure(sshModel);
+        }
+        return ssh;
     }
 
     static getAllShellSecure(): ShellSecure[] {

@@ -45,3 +45,6 @@ account/*
 
 ssh/*
 !ssh/.gitkeep
+
+archive/*
+!archive/.gitkeep

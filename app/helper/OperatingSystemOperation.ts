@@ -64,10 +64,35 @@ export class OperatingSystemOperation {
                 spinner.succeed(`Success Cloning Repository ${git.url}`);
                 git.cloned = true;
                 git.createConfigFile();
+                // git.archive();
             } else {
                 spinner.fail(`Failed to Cloning Repository ${git.url}`);
             }
         });
+    }
+
+    // Currently This Function Support on Linux Only
+    public gitZIP(git: Git, async: boolean = false) {
+        if (git.isExists()) {
+            let commandExecution: any;
+            if (async) {
+                // @ts-ignore
+                commandExecution = spawn('zip', ['-r', git.getArchiveLocation(), git.getRepositorySaveLocation()], {
+                    shell: true
+                });
+            } else {
+                // @ts-ignore
+                commandExecution = spawnSync('zip', ['-r', git.getArchiveLocation(), git.getRepositorySaveLocation()]);
+            }
+            const spinner = ora(`Please wait, Compressing Repository ${git.url}\n`).start();
+            commandExecution.on('close', (code: any) => {
+                if (code == 0) {
+                    spinner.succeed(`Success Compressing Repository ${git.url}`);
+                } else {
+                    spinner.fail(`Failed to Compressing Repository ${git.url}`);
+                }
+            });
+        }
     }
 
     public static isAllowedOperatingSystem(operatingSystem: String): boolean {
