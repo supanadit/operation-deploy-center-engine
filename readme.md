@@ -30,3 +30,14 @@ This is main engine for any request in Operation X
 - Terminal Operation ( SSH )
 - Auto Building and Deploy to selected server using ( Target Mode )
 - Create Plugin for Visual Studio Code, PHP Storm, Intellij Idea, Webstorm, Ruby Mine, Rider, Goland, Android Studio, Pycharm, Clion and Sublime Text
+- Currently Support Public GIT Repository Only
+
+## Step By Step To Setup
+- Clone this Repository
+- Make Sure Node JS have been installed
+- `npm install` wait until finish
+- Run `npm run dev`
+
+## Current API Ready
+- POST `/ssh/save` Save SSH Account
+- POST `/git/clone` Clone Repository

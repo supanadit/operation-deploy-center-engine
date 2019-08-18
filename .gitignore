@@ -34,5 +34,14 @@
 package-lock.json
 
 # Engine Exception
-operation/*
-!operation/.gitkeep
+git/*
+!git/.gitkeep
+
+repository/*
+!repository/.gitkeep
+
+account/*
+!account/.gitkeep
+
+ssh/*
+!ssh/.gitkeep
