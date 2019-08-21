@@ -1,12 +1,9 @@
 // Author Supan Adit Pratama <supanadit@gmail.com>
-import { OperatingSystemOperation }             from '../helper/OperatingSystemOperation';
 import { archiveStore, gitRepoStore, gitStore } from '../../config/setting';
+import { spawn, spawnSync } from "child_process";
 
-const recursive = require('recursive-readdir-synchronous');
 const fs = require('fs');
-const rimraf = require('rimraf');
 const tomlify = require('tomlify-j0.4');
-const toml = require('toml');
 const ora = require('ora');
 
 export interface GitModel {
@@ -81,20 +78,56 @@ export class Git implements GitModel {
         return archiveStore.concat('/').concat(this.getProjectName()).concat('.zip');
     }
 
+    getArchiveNameOnly(): string {
+        return this.getProjectName().concat('.zip');
+    }
+
     clone() {
         if (!this.invalidURL) {
-            const myOs: OperatingSystemOperation = new OperatingSystemOperation();
-            myOs.gitClone(this, true);
+            const commandExecution = spawn('git', ['clone', this.url, this.getRepositorySaveLocation()], {
+                shell: true,
+            });
+            const spinner = ora(`Please wait, Cloning ${this.url}\n`).start();
+            commandExecution.on('close', (code: any) => {
+                if (code == 0) {
+                    spinner.succeed(`Success Cloning Repository ${this.url}`);
+                    this.cloned = true;
+                    this.createConfigFile();
+                } else {
+                    spinner.fail(`Failed to Cloning Repository ${this.url}`);
+                }
+            });
         }
     }
 
     compress() {
         if (!this.invalidURL) {
             if (this.isExists()) {
-                const myOs: OperatingSystemOperation = new OperatingSystemOperation();
-                myOs.gitZIP(this, true);
+                const commandExecution = spawn('zip', ['-r', this.getArchiveLocation(), this.getRepositorySaveLocation()], {
+                    shell: true,
+                });
+                const spinner = ora(`Please wait, Compressing Repository ${this.url}\n`).start();
+                commandExecution.on('close', (code: any) => {
+                    if (code == 0) {
+                        spinner.succeed(`Success Compressing Repository ${this.url}`);
+                    } else {
+                        spinner.fail(`Failed to Compressing Repository ${this.url}`);
+                    }
+                });
             }
         }
+    }
+
+    compressSync() {
+        if (!this.invalidURL) {
+            if (this.isExists()) {
+                spawnSync('zip', ['-r', this.getArchiveLocation(), this.getRepositorySaveLocation()]);
+            }
+        }
+    }
+
+    getRepositoryUpdate() {
+        // Should Be Filled by `git pull`
     }
 
     isExists(): boolean {
@@ -113,17 +146,31 @@ export class Git implements GitModel {
         return result;
     }
 
-    delete(): void {
-        const spinner = ora(`Pleasewait.. Removing ${this.url}\n`).start();
+    deleteConfigFile(): void {
         if (this.isExists()) {
             fs.unlinkSync(this.getConfigFileLocation());
         }
+    }
+
+    deleteRepository(): void {
         if (this.getRepositorySaveLocation()) {
-            rimraf.sync(this.getRepositorySaveLocation());
+            spawnSync('rm', ['-rf', this.getRepositorySaveLocation()], {
+                shell: true,
+            });
         }
+    }
+
+    deleteArchive(): void {
         if (this.isArchiveExist()) {
             fs.unlinkSync(this.getArchiveLocation());
         }
+    }
+
+    deleteAll(): void {
+        const spinner = ora(`Pleasewait.. Removing ${this.url}\n`).start();
+        this.deleteConfigFile();
+        this.deleteRepository();
+        this.deleteArchive();
         spinner.succeed(`Success Removing Git ${this.url}`);
     }
 

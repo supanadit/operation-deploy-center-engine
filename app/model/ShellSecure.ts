@@ -12,7 +12,6 @@ export interface ShellSecureModel {
     username: string;
     password: string;
     port: string;
-    uploadPath: string;
 }
 
 export class ShellSecure implements ShellSecureModel {
@@ -20,16 +19,12 @@ export class ShellSecure implements ShellSecureModel {
     password: string;
     port: string;
     username: string;
-    uploadPath: string;
-
-    protected globalMessage: string = 'No Message';
 
     constructor(ssh: ShellSecureModel) {
         this.host = ssh.host;
         this.password = ssh.password;
         this.port = ssh.port;
         this.username = ssh.username;
-        this.uploadPath = ssh.uploadPath;
     }
 
     isExists(): boolean {
@@ -51,17 +46,22 @@ export class ShellSecure implements ShellSecureModel {
                 const toml = tomlify.toToml(ssh, {space: 2});
                 fs.writeFileSync(sshStore.concat('/').concat(filename), toml);
             } catch (error) {
-                this.globalMessage = 'Unknown Error';
                 console.log('Error While Saving SSH Account for Host', this.host, 'With Error', error);
             }
-        } else {
-            this.globalMessage = 'This SSH is Exist';
         }
         return result;
     }
 
-    getMessage(): string {
-        return this.globalMessage;
+    static getAutoSSH(ssh: ShellSecureModel): ShellSecure | null {
+        if (ssh.host != null && ssh.username != null && ssh.port != null && ssh.password != null) {
+            return new ShellSecure(ssh);
+        } else {
+            if ((ssh.host != null) && (ssh.username == null && ssh.port == null && ssh.password == null)) {
+                return this.fromConfigFile(ssh.host);
+            } else {
+                return null;
+            }
+        }
     }
 
     static fromConfigFile(hostname: string): ShellSecure | null {
