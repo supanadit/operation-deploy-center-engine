@@ -30,7 +30,11 @@ export class Deploy implements DeployModel {
             const shellSecure: ShellSecure = autoSSH;
             const password = shellSecure.password;
             const target = this.target;
-            const spinner = ora(`Compressing ${git.url}`).start();
+            const spinner = ora(`Getting Update ${git.url}`).start();
+            git.getRepositoryUpdateSync();
+            spinner.text = `Deleting Archive ${git.url}`;
+            git.deleteArchive();
+            spinner.text = `Comressing ${git.url}`;
             git.compressSync();
             spinner.text = `Deploy ${git.url} to Server ${shellSecure.host} with Folder ${this.target}`;
             setTimeout(function () {
