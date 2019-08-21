@@ -161,6 +161,22 @@ app.post('/git/remove', function (req, res) {
     }
 });
 
+app.post('/git/update', function (req, res) {
+    let git: GitModel;
+    try {
+        git = req.body;
+        const gitData: Git = new Git(git);
+        if (!gitData.isExists() && !gitData.isRepositotyExist()) {
+            res.send('This Repository Does not exist');
+        } else {
+            gitData.getRepositoryUpdate();
+            res.send('Getting Update');
+        }
+    } catch (e) {
+        console.log('Error : ' + e);
+    }
+});
+
 CFonts.say('Operation X Engine', {
     font: 'block',
 });

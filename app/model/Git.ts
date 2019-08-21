@@ -127,7 +127,32 @@ export class Git implements GitModel {
     }
 
     getRepositoryUpdate() {
-        // Should Be Filled by `git pull`
+        if (!this.invalidURL) {
+            if (this.isExists()) {
+                const commandExecution = spawn('git', ['pull'], {
+                    shell: true,
+                    cwd: this.getRepositorySaveLocation(),
+                });
+                const spinner = ora(`Getting Update Repository${this.url}\n`).start();
+                commandExecution.on('close', (code: any) => {
+                    if (code == 0) {
+                        spinner.succeed(`Repository ${this.url} have been updated`);
+                    } else {
+                        spinner.fail(`Failed to Get an Update Repository ${this.url}`);
+                    }
+                });
+            }
+        }
+    }
+
+    getRepositoryUpdateSync() {
+        if (!this.invalidURL) {
+            if (this.isExists()) {
+                spawn('git', ['pull'], {
+                    cwd: this.getRepositorySaveLocation(),
+                });
+            }
+        }
     }
 
     isExists(): boolean {
