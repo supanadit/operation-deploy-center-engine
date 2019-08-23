@@ -1,0 +1,13 @@
+dependency = [
+  "npm",
+  "ng"
+]
+name = "Angular"
+
+[[command]]
+command = "npm install"
+description = "Installing Dependencies"
+
+[[command]]
+command = "ng build"
+description = "Build Angular App"

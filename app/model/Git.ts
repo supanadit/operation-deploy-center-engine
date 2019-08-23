@@ -1,6 +1,7 @@
 // Author Supan Adit Pratama <supanadit@gmail.com>
 import { archiveStore, gitRepoStore, gitStore } from '../../config/setting';
 import { spawn, spawnSync } from "child_process";
+import { Script } from "./Script";
 
 const fs = require('fs');
 const tomlify = require('tomlify-j0.4');
@@ -100,16 +101,30 @@ export class Git implements GitModel {
         }
     }
 
-    compress() {
+    compress(specificDirectory: Array<string> = []) {
         if (!this.invalidURL) {
+            const compressDirectory = (specificDirectory.length == 0) ? this.getRepositorySaveLocation() : this.getRepositorySaveLocation().concat("/").concat(
+                specificDirectory.join("/")
+            );
             if (this.isExists()) {
-                const commandExecution = spawn('zip', ['-r', this.getArchiveLocation(), this.getRepositorySaveLocation()], {
+                const commandExecution = spawn('zip', ['-r', this.getArchiveNameOnly(), "."], {
                     shell: true,
+                    cwd: compressDirectory,
                 });
                 const spinner = ora(`Please wait, Compressing Repository ${this.url}\n`).start();
                 commandExecution.on('close', (code: any) => {
                     if (code == 0) {
-                        spinner.succeed(`Success Compressing Repository ${this.url}`);
+                        const currentArchive = compressDirectory.concat("/").concat(this.getArchiveNameOnly());
+                        const moveExecution = spawn('mv', [currentArchive, this.getArchiveLocation()], {
+                            shell: true,
+                        });
+                        moveExecution.on('close', (code: any) => {
+                            if (code == 0) {
+                                spinner.succeed(`Success Compressing Repository ${this.url}`);
+                            } else {
+                                spinner.fail(`Failed to Compressing Repository ${this.url}`);
+                            }
+                        });
                     } else {
                         spinner.fail(`Failed to Compressing Repository ${this.url}`);
                     }
@@ -213,5 +228,9 @@ export class Git implements GitModel {
             }
         }
         return result;
+    }
+
+    runScript(script: Script) {
+        script.runScript(null, this.getRepositorySaveLocation());
     }
 }

@@ -1,11 +1,13 @@
 // lib/app.ts
 'use strict';
 import { ShellSecure, ShellSecureModel } from './model/ShellSecure';
-import bodyParser = require('body-parser');
-import express = require('express');
 import { Git, GitModel } from './model/Git';
 import { DefaultResponse } from "./model/ResponseObject";
 import { Deploy, DeployModel } from "./model/Deploy";
+import { SystemAppChecker } from "./model/System";
+import { Script, ScriptInterface } from "./model/Script";
+import bodyParser = require('body-parser');
+import express = require('express');
 
 const {Signale} = require('signale');
 const chalk = require('chalk');
@@ -177,6 +179,29 @@ app.post('/git/update', function (req, res) {
     }
 });
 
+app.post('/git/script', function (req, res) {
+    let git: GitModel;
+    let script: string;
+    try {
+        git = req.body['git'];
+        script = req.body['script'];
+        const gitData: Git = new Git(git);
+        if (!gitData.isExists() && !gitData.isRepositotyExist()) {
+            res.send('This Repository Does not exist');
+        } else {
+            const scriptFile = Script.loadFile(script);
+            if (scriptFile == null) {
+                res.send(`${script} is not found`);
+            } else {
+                gitData.runScript(scriptFile);
+                res.send('Run Script');
+            }
+        }
+    } catch (e) {
+        console.log('Error : ' + e);
+    }
+});
+
 CFonts.say('Operation X Engine', {
     font: 'block',
 });
@@ -189,10 +214,35 @@ console.log('Version :', chalk.hex('#FFFFFF').bgBlue(' 1.0 '));
 console.log('');
 console.log('Current OS : ', chalk.hex('#FFFFFF').bgRed(' ' + process.platform + ' '));
 console.log('');
-const processStart = new Signale({interactive: true, scope: 'Starting Server'});
+const processStart = new Signale({interactive: true, scope: 'Engine'});
 processStart.await('Starting Server');
 setTimeout(function () {
-    app.listen(3000, function () {
-        processStart.success('Engine success started on port 3000');
+    processStart.await("Checking System");
+    const sshCheck: SystemAppChecker = new SystemAppChecker("ssh", processStart);
+    const gitCheck: SystemAppChecker = new SystemAppChecker("git", processStart);
+    const zipCheck: SystemAppChecker = new SystemAppChecker("zip", processStart);
+    const unzipCheck: SystemAppChecker = new SystemAppChecker("unzip", processStart);
+    const listSystemChecker: SystemAppChecker[] = [
+        sshCheck,
+        gitCheck,
+        zipCheck,
+        unzipCheck,
+    ];
+    let errorListSystemChecker: SystemAppChecker[] = [];
+    for (let x of listSystemChecker) {
+        x.checkSync();
+        if (!x.isValid()) {
+            errorListSystemChecker.push(x);
+        }
+    }
+    if (errorListSystemChecker.length == 0) {
+        app.listen(3000, function () {
+            processStart.success('Engine success started on port 3000');
+        });
+    } else {
+        processStart.error("Failed to start Engine");
+    }
+    errorListSystemChecker.forEach((x: SystemAppChecker) => {
+        console.info(x.getMessage());
     });
 }, 1000);

@@ -1,5 +1,6 @@
 import { ShellSecure, ShellSecureModel } from "./ShellSecure";
 import { Git, GitModel } from "./Git";
+import { ScriptInterface } from "./Script";
 
 const ora = require('ora');
 const node_ssh = require('node-ssh');
@@ -10,17 +11,23 @@ export interface DeployModel {
     ssh: ShellSecureModel;
     git: GitModel;
     target: string;
+    scriptLocal?: ScriptInterface;
+    scriptRemote?: ScriptInterface;
 }
 
 export class Deploy implements DeployModel {
     target: string;
     git: GitModel;
     ssh: ShellSecureModel;
+    scriptLocal?: ScriptInterface;
+    scriptRemote?: ScriptInterface;
 
     constructor(deployModel: DeployModel) {
         this.target = deployModel.target;
         this.git = deployModel.git;
         this.ssh = deployModel.ssh;
+        this.scriptLocal = deployModel.scriptLocal;
+        this.scriptRemote = deployModel.scriptRemote;
     }
 
     runDeploy() {
