@@ -1,5 +1,7 @@
 import { scriptsStore } from "../../config/setting";
-import { spawnSync } from "child_process";
+// import { spawn } from "child_process";
+
+const spawn = require('await-spawn');
 
 const fs = require('fs');
 
@@ -64,48 +66,59 @@ export class Script implements ScriptInterface {
         return result;
     }
 
-    runScript(spinner = null, parentDirectory = "") {
-        const spinnerData = (spinner == null) ? ora(`Running Script ${this.name}`).start() : spinner;
-        for (let operation of this.command) {
-            // Skip For Now
-            // let valid: boolean = false;
-            // if (operation.system_identification != null) {
-            //     valid = LIST_SYSTEM_IDENTIFICATION_CODE.some((x) => x == operation.system_identification);
-            // }
-            const commandSplit = operation.command.split(" ");
-            const firstAction = commandSplit[0];
-            spinnerData.text = (operation.description != null) ? operation.description : "Try ".concat(firstAction);
-            let paramAction: Array<string> = [];
-            if (commandSplit.length >= 1) {
-                paramAction = commandSplit.slice(1);
-            }
-            let commandExecution: any;
-            let runInDirectory: string | null = null;
-            if (parentDirectory != "") {
-                if (operation.directory == null) {
-                    runInDirectory = parentDirectory;
-                } else {
-                    runInDirectory = parentDirectory.concat("/").concat(operation.directory.join("/"))
+    async runScript(spinner = null, parentDirectory = "") {
+        const name = this.name;
+        const command = this.command;
+        const main = async () => {
+            const spinnerData = (spinner == null) ? ora(`Running Script ${name}`).start() : spinner;
+            const timeout = function (ms: number) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            };
+            const timeoutTime = 1500;
+            for (let operation of command) {
+                const commandSplit = operation.command.split(" ");
+                const firstAction = commandSplit[0];
+                spinnerData.text = (operation.description != null) ? operation.description : "Try ".concat(firstAction);
+                await timeout(timeoutTime);
+                let paramAction: Array<string> = [];
+                if (commandSplit.length >= 1) {
+                    paramAction = commandSplit.slice(1);
+                }
+                let commandExecution: any;
+                let runInDirectory: string | null = null;
+                if (parentDirectory != "") {
+                    if (operation.directory == null) {
+                        runInDirectory = parentDirectory;
+                    } else {
+                        runInDirectory = parentDirectory.concat("/").concat(operation.directory.join("/"))
+                    }
+                }
+
+                try {
+                    if (runInDirectory != null) {
+                        commandExecution = await spawn(firstAction, paramAction, {
+                            shell: true,
+                            cwd: runInDirectory,
+                        });
+                    } else {
+                        commandExecution = await spawn(firstAction, paramAction, {
+                            shell: true,
+                        });
+                    }
+                    spinnerData.text = "Success ".concat((operation.description != null) ? operation.description : firstAction);
+                    await timeout(timeoutTime);
+                } catch (error) {
+                    spinnerData.text = "Failed ".concat((operation.description != null) ? operation.description : firstAction);
+                    await timeout(timeoutTime);
                 }
             }
-            if (runInDirectory != null) {
-                commandExecution = spawnSync(firstAction, paramAction, {
-                    shell: true,
-                    cwd: runInDirectory,
-                });
+            if (spinner == null) {
+                spinnerData.succeed(`Success run script ${name}`);
             } else {
-                commandExecution = spawnSync(firstAction, paramAction, {
-                    shell: true,
-                });
+                spinnerData.text = `Success run script ${name}`;
             }
-            const error = commandExecution.error;
-            if (typeof error == "undefined") {
-                spinnerData.text = "Success ".concat((operation.description != null) ? operation.description : firstAction);
-            } else {
-                spinnerData.text = "Failed ".concat((operation.description != null) ? operation.description : firstAction);
-            }
-        }
-        spinnerData.succeed("Finish");
+        };
+        await main();
     }
 
     static loadFile(name: string): Script | null {

@@ -51,7 +51,7 @@ export class SystemAppChecker implements SystemAppCheckerInterface {
         const waiter: any = (this.signal == null) ? ora(`Checking ${this.name}`).start() : this.signal;
         if (typeof error == "undefined") {
             this.valid = true;
-            this.message = `${this.name} have been installed`
+            this.message = `${this.name} have been installed`;
             if (this.signal == null) {
                 waiter.succeed(this.message);
             } else {

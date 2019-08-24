@@ -5,7 +5,7 @@ import { Git, GitModel } from './model/Git';
 import { DefaultResponse } from "./model/ResponseObject";
 import { Deploy, DeployModel } from "./model/Deploy";
 import { SystemAppChecker } from "./model/System";
-import { Script, ScriptInterface } from "./model/Script";
+import { Script } from "./model/Script";
 import bodyParser = require('body-parser');
 import express = require('express');
 

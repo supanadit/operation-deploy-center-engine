@@ -230,7 +230,7 @@ export class Git implements GitModel {
         return result;
     }
 
-    runScript(script: Script) {
-        script.runScript(null, this.getRepositorySaveLocation());
+    async runScript(script: Script) {
+        await script.runScript(null, this.getRepositorySaveLocation());
     }
 }
