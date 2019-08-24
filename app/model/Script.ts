@@ -1,5 +1,4 @@
 import { scriptsStore } from "../../config/setting";
-// import { spawn } from "child_process";
 
 const spawn = require('await-spawn');
 
