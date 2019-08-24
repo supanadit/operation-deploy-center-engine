@@ -75,10 +75,17 @@ export class Script implements ScriptInterface {
                 return new Promise(resolve => setTimeout(resolve, ms));
             };
             const timeoutTime = 1500;
+            let totalOperation = command.length;
+            let countedOperation = 0;
+            let countedError = 0;
+            let countedSuccess = 0;
             for (let operation of command) {
+                countedOperation += 1;
                 const commandSplit = operation.command.split(" ");
                 const firstAction = commandSplit[0];
-                spinnerData.text = (operation.description != null) ? operation.description : "Try ".concat(firstAction);
+                const messageIndicator = (operation.description != null) ? operation.description : "Try ".concat(firstAction);
+                spinnerData.color = "cyan";
+                spinnerData.text = messageIndicator.concat(" ").concat(`${countedOperation} of ${totalOperation}`);
                 await timeout(timeoutTime);
                 let paramAction: Array<string> = [];
                 if (commandSplit.length >= 1) {
@@ -105,17 +112,23 @@ export class Script implements ScriptInterface {
                             shell: true,
                         });
                     }
+                    countedSuccess += 1;
+                    spinnerData.color = "green";
                     spinnerData.text = "Success ".concat((operation.description != null) ? operation.description : firstAction);
                     await timeout(timeoutTime);
                 } catch (error) {
+                    countedError += 1;
+                    spinnerData.color = "red";
                     spinnerData.text = "Failed ".concat((operation.description != null) ? operation.description : firstAction);
                     await timeout(timeoutTime);
                 }
             }
+            const finnishMessage = `Finish run script ${name} with ${countedSuccess} success, ${countedError} error of Total ${totalOperation} operation`;
             if (spinner == null) {
-                spinnerData.succeed(`Success run script ${name}`);
+                spinnerData.color = "green";
+                spinnerData.succeed(finnishMessage);
             } else {
-                spinnerData.text = `Success run script ${name}`;
+                spinnerData.text = finnishMessage;
             }
         };
         await main();
