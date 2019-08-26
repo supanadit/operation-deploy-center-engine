@@ -32,6 +32,7 @@ export class Git implements GitModel {
         const url = this.url;
         let isHTTPS = false;
         let isHTTP = false;
+        let isSSH = false;
         // Verify If it HTTPS
         if (url.slice(0, https.length) == https) {
             isHTTPS = true;
@@ -43,7 +44,29 @@ export class Git implements GitModel {
                 this.urlType = 'HTTP';
             } else {
                 // If Not HTTPS / HTTP it could be SSH Maybe
-                this.urlType = 'Unknown';
+                const splitToGetAtSymbol = url.split("@");
+                if (splitToGetAtSymbol.length != 0) {
+                    const userGitName = splitToGetAtSymbol[0]; // It should be git
+                    const nameLeft = splitToGetAtSymbol[1]; // It should be eg. bitbucket.org:username/repository_name
+                    const splitNameLeft = nameLeft.split(":");
+                    if (splitNameLeft.length != 0) {
+                        const domainName = splitNameLeft[0]; // It should be eg. bitbucket.org / github.com / gitlab.com
+                        const usernameAndRepository = splitNameLeft[1]; // It should be eg. username/repository_name
+                        const splitUsernameAndRepository = usernameAndRepository.split("/");
+                        if (splitUsernameAndRepository.length != 0) {
+                            const username = splitUsernameAndRepository[0];
+                            const repository_name = splitUsernameAndRepository[1];
+                            this.projectName = repository_name;
+                            isSSH = true;
+                        } else {
+                            this.urlType = 'Unknown';
+                        }
+                    } else {
+                        this.urlType = 'Unknown';
+                    }
+                } else {
+                    this.urlType = 'Unknown';
+                }
             }
         }
 
@@ -52,6 +75,12 @@ export class Git implements GitModel {
             this.invalidURL = false;
             const splitURL: Array<string> = url.split('/').slice(2);
             this.projectName = splitURL[splitURL.length - 1].split('.')[0];
+            this.location = gitRepoStore.concat('/').concat(this.projectName);
+            if (this.isRepositotyExist()) {
+                this.cloned = true;
+            }
+        } else if (isSSH) {
+            this.invalidURL = false;
             this.location = gitRepoStore.concat('/').concat(this.projectName);
             if (this.isRepositotyExist()) {
                 this.cloned = true;
