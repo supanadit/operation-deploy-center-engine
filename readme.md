@@ -1,6 +1,6 @@
 # Operation X Engine
 
-![Terminal](https://i.ibb.co/3TjGt8F/Operation-X-Logo.png)
+![Operation X Logo](https://i.ibb.co/RgkTNFj/Operation-X-Logo.png)
 
 ## Description
 
