@@ -166,7 +166,7 @@ export class Git implements GitModel {
             });
             // commandExecution.stderr.pipe(process.stderr);
             // commandExecution.stdout.pipe(process.stdout);
-            // const spinner = ora(`Please wait, Cloning ${this.url}\n`).start();
+            const spinner = ora(`Please wait, Cloning ${this.url}\n`).start();
             // if (this.password != null) {
             //     for (let x of this.password.split('').concat('\n')) {
             //         commandExecution.stdin.write(x);
@@ -183,11 +183,11 @@ export class Git implements GitModel {
             // });
             commandExecution.on('close', (code: any) => {
                 if (code == 0) {
-                    // spinner.succeed(`Success Cloning Repository ${this.url}`);
+                    spinner.succeed(`Success Cloning Repository ${this.url}`);
                     this.cloned = true;
                     this.createConfigFile();
                 } else {
-                    // spinner.fail(`Failed to Cloning Repository ${this.url}`);
+                    spinner.fail(`Failed to Cloning Repository ${this.url}`);
                 }
             });
         }
