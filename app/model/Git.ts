@@ -1,7 +1,7 @@
 // Author Supan Adit Pratama <supanadit@gmail.com>
 import { archiveStore, gitRepoStore, gitStore } from '../../config/setting';
-import { spawn, spawnSync } from "child_process";
-import { Script } from "./Script";
+import { spawn, spawnSync } from 'child_process';
+import { Script } from './Script';
 
 const fs = require('fs');
 const tomlify = require('tomlify-j0.4');
@@ -9,10 +9,14 @@ const ora = require('ora');
 
 export interface GitModel {
     url: string;
+    username?: string;
+    password?: string;
 }
 
 export class Git implements GitModel {
     url: string;
+    username?: string;
+    password?: string;
 
     cloned: boolean = false;
     protected location: string = '';
@@ -26,6 +30,8 @@ export class Git implements GitModel {
         this.url = git.url;
         this.urlType = '';
         this.projectName = '';
+        this.username = git.username;
+        this.password = git.password;
 
         const http = 'http';
         const https = 'https';
@@ -44,20 +50,25 @@ export class Git implements GitModel {
                 this.urlType = 'HTTP';
             } else {
                 // If Not HTTPS / HTTP it could be SSH Maybe
-                const splitToGetAtSymbol = url.split("@");
+                const splitToGetAtSymbol = url.split('@');
                 if (splitToGetAtSymbol.length != 0) {
                     const userGitName = splitToGetAtSymbol[0]; // It should be git
                     const nameLeft = splitToGetAtSymbol[1]; // It should be eg. bitbucket.org:username/repository_name
-                    const splitNameLeft = nameLeft.split(":");
+                    const splitNameLeft = nameLeft.split(':');
                     if (splitNameLeft.length != 0) {
                         const domainName = splitNameLeft[0]; // It should be eg. bitbucket.org / github.com / gitlab.com
                         const usernameAndRepository = splitNameLeft[1]; // It should be eg. username/repository_name
-                        const splitUsernameAndRepository = usernameAndRepository.split("/");
+                        const splitUsernameAndRepository = usernameAndRepository.split('/');
                         if (splitUsernameAndRepository.length != 0) {
                             const username = splitUsernameAndRepository[0];
                             const repository_name = splitUsernameAndRepository[1];
+                            const repository_name_split = repository_name.split('.');
                             this.projectName = repository_name;
+                            if (repository_name_split.length != 0) {
+                                this.projectName = repository_name_split[0];
+                            }
                             isSSH = true;
+                            this.urlType = 'SSH';
                         } else {
                             this.urlType = 'Unknown';
                         }
@@ -73,9 +84,45 @@ export class Git implements GitModel {
         // If it HTTP / HTTPS
         if (isHTTP || isHTTPS) {
             this.invalidURL = false;
+            let currentURL = this.url;
+            if (isHTTPS) {
+                currentURL = this.url.slice(https.length);
+            } else {
+                currentURL = this.url.slice(http.length);
+            }
+            const symbolAfterProtocol = '://';
+            currentURL = currentURL.slice(symbolAfterProtocol.length);
+            const splitUsernameWithLink = currentURL.split('@'); // Split example@example.com/etc.git
+            let username = '';
+            let domainIndex = 0;
+            if (splitUsernameWithLink.length >= 1) {
+                username = splitUsernameWithLink[0];
+                domainIndex = 1;
+                if (this.username == null) {
+                    this.username = username;
+                }
+            }
+
+            const splitDomainWithLink = splitUsernameWithLink[domainIndex].split('.');
+            const hostName = splitDomainWithLink[0]; // Github / Bitbucket / Gitlab
+            const splitTLDwithLink = splitDomainWithLink[1].split('/');
+            const tldName = splitTLDwithLink[0]; // .com / .org / .net
+            const path = splitTLDwithLink.slice(1).join('/');
+
             const splitURL: Array<string> = url.split('/').slice(2);
             this.projectName = splitURL[splitURL.length - 1].split('.')[0];
             this.location = gitRepoStore.concat('/').concat(this.projectName);
+            let linkReplacement = ((this.username) ? this.username : '');
+            linkReplacement = ((this.username) ? (
+                (this.password) ? linkReplacement.concat(':').concat(this.password) : ''
+            ) : '');
+            const fullDomain = hostName.concat('.').concat(tldName);
+            linkReplacement = (linkReplacement != '') ? linkReplacement.concat('@').concat(fullDomain) : fullDomain;
+            const urlFirst = ((isHTTP) ? http : https).concat(symbolAfterProtocol);
+            linkReplacement = urlFirst.concat(linkReplacement).concat('/').concat(path);
+            if (username != '' && this.password != null) {
+                this.url = linkReplacement;
+            }
             if (this.isRepositotyExist()) {
                 this.cloned = true;
             }
@@ -117,14 +164,30 @@ export class Git implements GitModel {
             const commandExecution = spawn('git', ['clone', this.url, this.getRepositorySaveLocation()], {
                 shell: true,
             });
-            const spinner = ora(`Please wait, Cloning ${this.url}\n`).start();
+            // commandExecution.stderr.pipe(process.stderr);
+            // commandExecution.stdout.pipe(process.stdout);
+            // const spinner = ora(`Please wait, Cloning ${this.url}\n`).start();
+            // if (this.password != null) {
+            //     for (let x of this.password.split('').concat('\n')) {
+            //         commandExecution.stdin.write(x);
+            //     }
+            // }
+            // commandExecution.stdout.setEncoding('utf8');
+            // commandExecution.stdout.on('data', function (data) {
+            //     console.log('stdout: ' + data);
+            // });
+            //
+            // commandExecution.stderr.setEncoding('utf8');
+            // commandExecution.stderr.on('data', function (data) {
+            //     console.log('stderr: ' + data);
+            // });
             commandExecution.on('close', (code: any) => {
                 if (code == 0) {
-                    spinner.succeed(`Success Cloning Repository ${this.url}`);
+                    // spinner.succeed(`Success Cloning Repository ${this.url}`);
                     this.cloned = true;
                     this.createConfigFile();
                 } else {
-                    spinner.fail(`Failed to Cloning Repository ${this.url}`);
+                    // spinner.fail(`Failed to Cloning Repository ${this.url}`);
                 }
             });
         }
@@ -132,18 +195,18 @@ export class Git implements GitModel {
 
     compress(specificDirectory: Array<string> = []) {
         if (!this.invalidURL) {
-            const compressDirectory = (specificDirectory.length == 0) ? this.getRepositorySaveLocation() : this.getRepositorySaveLocation().concat("/").concat(
-                specificDirectory.join("/")
+            const compressDirectory = (specificDirectory.length == 0) ? this.getRepositorySaveLocation() : this.getRepositorySaveLocation().concat('/').concat(
+                specificDirectory.join('/')
             );
             if (this.isExists()) {
-                const commandExecution = spawn('zip', ['-r', this.getArchiveNameOnly(), "."], {
+                const commandExecution = spawn('zip', ['-r', this.getArchiveNameOnly(), '.'], {
                     shell: true,
                     cwd: compressDirectory,
                 });
                 const spinner = ora(`Please wait, Compressing Repository ${this.url}\n`).start();
                 commandExecution.on('close', (code: any) => {
                     if (code == 0) {
-                        const currentArchive = compressDirectory.concat("/").concat(this.getArchiveNameOnly());
+                        const currentArchive = compressDirectory.concat('/').concat(this.getArchiveNameOnly());
                         const moveExecution = spawn('mv', [currentArchive, this.getArchiveLocation()], {
                             shell: true,
                         });
