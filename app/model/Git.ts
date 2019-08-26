@@ -119,7 +119,7 @@ export class Git implements GitModel {
             const fullDomain = hostName.concat('.').concat(tldName);
             linkReplacement = (linkReplacement != '') ? linkReplacement.concat('@').concat(fullDomain) : fullDomain;
             const urlFirst = ((isHTTP) ? http : https).concat(symbolAfterProtocol);
-            linkReplacement = urlFirst.concat(linkReplacement).concat('/').concat(path);
+            linkReplacement = urlFirst.concat(linkReplacement).concat('/').concat(path).concat('.git');
             if (username != '' && this.password != null) {
                 this.url = linkReplacement;
             }
