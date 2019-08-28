@@ -39,15 +39,13 @@ export class ShellSecure implements ShellSecureModel {
 
     save(): boolean {
         let result: boolean = false;
-        if (!this.isExists()) {
-            try {
-                let ssh: ShellSecureModel = this;
-                const filename = ssh.host.concat('.toml');
-                const toml = tomlify.toToml(ssh, {space: 2});
-                fs.writeFileSync(sshStore.concat('/').concat(filename), toml);
-            } catch (error) {
-                console.log('Error While Saving SSH Account for Host', this.host, 'With Error', error);
-            }
+        try {
+            let ssh: ShellSecureModel = this;
+            const filename = ssh.host.concat('.toml');
+            const toml = tomlify.toToml(ssh, {space: 2});
+            fs.writeFileSync(sshStore.concat('/').concat(filename), toml);
+        } catch (error) {
+            console.log('Error While Saving SSH Account for Host', this.host, 'With Error', error);
         }
         return result;
     }
@@ -76,7 +74,7 @@ export class ShellSecure implements ShellSecureModel {
     }
 
     static getAllShellSecure(): ShellSecure[] {
-        const files = recursive(sshStore);
+        const files = recursive(sshStore, ['.gitkeep',]);
         const allSSH: ShellSecure[] = files.map((x: any) => {
             let dataToml: string = fs.readFileSync(x, 'utf-8');
             let sshModel: ShellSecureModel = toml.parse(dataToml);

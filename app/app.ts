@@ -2,10 +2,10 @@
 'use strict';
 import { ShellSecure, ShellSecureModel } from './model/ShellSecure';
 import { Git, GitModel } from './model/Git';
-import { DefaultResponse } from "./model/ResponseObject";
-import { Deploy, DeployModel } from "./model/Deploy";
-import { SystemAppChecker } from "./model/System";
-import { Script } from "./model/Script";
+import { DefaultResponse } from './model/ResponseObject';
+import { Deploy, DeployModel } from './model/Deploy';
+import { SystemAppChecker } from './model/System';
+import { Script } from './model/Script';
 import bodyParser = require('body-parser');
 import express = require('express');
 
@@ -20,6 +20,11 @@ const node_ssh = require('node-ssh');
 const sshTransfer = new node_ssh();
 
 app.use(bodyParser.json());
+app.use(function (req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*'); // update to match the domain you will make the request from
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
 app.get('/', function (req, res) {
     res.send('Hello World!');
 });
@@ -56,19 +61,19 @@ app.post('/unzip', function (req, res) {
                 port: 22,
                 password,
             }).then(function () {
-                spinner.text = "Unziping";
+                spinner.text = 'Unziping';
                 sshTransfer.execCommand(`unzip ${git.getArchiveNameOnly()} -d ${git.getProjectName()}`, {cwd: '/home/'}).then(function (result: { stdout: string; stderr: string; }) {
-                    spinner.text = "Success Unziping";
+                    spinner.text = 'Success Unziping';
                     console.info(result.stdout);
                     console.info(result.stderr);
                 });
-                spinner.text = "Deleting ZIP";
+                spinner.text = 'Deleting ZIP';
                 sshTransfer.execCommand(`rm ${git.getArchiveNameOnly()}`, {cwd: '/home/'}).then(function (result: { stdout: string; stderr: string; }) {
-                    spinner.succeed("Success Delete ZIP");
+                    spinner.succeed('Success Delete ZIP');
                     console.info(result.stdout);
                     console.info(result.stderr);
                 });
-            })
+            });
         }
         res.send('Deploy');
     } catch (e) {
@@ -109,7 +114,7 @@ app.post('/ssh/save', function (req, res) {
         ssh = req.body;
         const sshAccount: ShellSecure = new ShellSecure(ssh);
         sshAccount.save();
-        res.send(DefaultResponse.success("SSH Account have been saved"));
+        res.send(DefaultResponse.success('SSH Account have been saved'));
     } catch (e) {
         console.log('Error : ' + e);
     }
@@ -202,6 +207,13 @@ app.post('/git/script', function (req, res) {
     }
 });
 
+app.get('/ssh', function (req, res) {
+    const ssh: ShellSecure[] = ShellSecure.getAllShellSecure();
+    res.send(DefaultResponse.success<ShellSecure[]>('Success get all SSH', {
+        data: ssh
+    }));
+});
+
 CFonts.say('Operation X Engine', {
     font: 'block',
 });
@@ -217,11 +229,11 @@ console.log('');
 const processStart = new Signale({interactive: true, scope: 'Engine'});
 processStart.await('Starting Server');
 setTimeout(function () {
-    processStart.await("Checking System");
-    const sshCheck: SystemAppChecker = new SystemAppChecker("ssh", processStart);
-    const gitCheck: SystemAppChecker = new SystemAppChecker("git", processStart);
-    const zipCheck: SystemAppChecker = new SystemAppChecker("zip", processStart);
-    const unzipCheck: SystemAppChecker = new SystemAppChecker("unzip", processStart);
+    processStart.await('Checking System');
+    const sshCheck: SystemAppChecker = new SystemAppChecker('ssh', processStart);
+    const gitCheck: SystemAppChecker = new SystemAppChecker('git', processStart);
+    const zipCheck: SystemAppChecker = new SystemAppChecker('zip', processStart);
+    const unzipCheck: SystemAppChecker = new SystemAppChecker('unzip', processStart);
     const listSystemChecker: SystemAppChecker[] = [
         sshCheck,
         gitCheck,
@@ -240,7 +252,7 @@ setTimeout(function () {
             processStart.success('Engine success started on port 3000');
         });
     } else {
-        processStart.error("Failed to start Engine");
+        processStart.error('Failed to start Engine');
     }
     errorListSystemChecker.forEach((x: SystemAppChecker) => {
         console.info(x.getMessage());
