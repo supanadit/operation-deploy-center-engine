@@ -204,7 +204,7 @@ app.post('/git/remove', function (req, res) {
     let git: GitModel;
     try {
         git = req.body;
-        const gitData: Git = new Git(git);
+        const gitData: Git = new Git(git, true);
         if (!gitData.isExists() && !gitData.isRepositotyExist()) {
             res.send('This Repository Does not exist');
         } else {
@@ -212,6 +212,7 @@ app.post('/git/remove', function (req, res) {
             res.send('Remove Repository');
         }
     } catch (e) {
+        res.send(DefaultResponse.error('Some Error while Deleting Repository'));
         console.log('Error : ' + e);
     }
 });
