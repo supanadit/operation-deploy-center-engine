@@ -1,16 +1,20 @@
 // Author Supan Adit Pratama <supanadit@gmail.com>
-import { archiveStore, gitRepoStore, gitStore } from '../../config/setting';
+import { archiveStore, gitRepoStore, gitStore, sshStore } from '../../config/setting';
 import { spawn, spawnSync } from 'child_process';
 import { Script } from './Script';
+import { ShellSecureModel } from './ShellSecure';
 
 const fs = require('fs');
 const tomlify = require('tomlify-j0.4');
 const ora = require('ora');
+const recursive = require('recursive-readdir-synchronous');
+const toml = require('toml');
 
 export interface GitModel {
     url: string;
     username?: string;
     password?: string;
+    cloned?: boolean;
 }
 
 export class Git implements GitModel {
@@ -26,7 +30,7 @@ export class Git implements GitModel {
 
     protected invalidURL: boolean = true;
 
-    constructor(git: GitModel) {
+    constructor(git: GitModel, isFromLocal: boolean = false) {
         this.url = git.url;
         this.urlType = '';
         this.projectName = '';
@@ -39,98 +43,104 @@ export class Git implements GitModel {
         let isHTTPS = false;
         let isHTTP = false;
         let isSSH = false;
-        // Verify If it HTTPS
-        if (url.slice(0, https.length) == https) {
-            isHTTPS = true;
-            this.urlType = 'HTTPS';
-        } else {
-            // Verify If it HTTP
-            if (url.slice(0, http.length) == http) {
-                isHTTP = true;
-                this.urlType = 'HTTP';
+        if (!isFromLocal) {
+            // Verify If it HTTPS
+            if (url.slice(0, https.length) == https) {
+                isHTTPS = true;
+                this.urlType = 'HTTPS';
             } else {
-                // If Not HTTPS / HTTP it could be SSH Maybe
-                const splitToGetAtSymbol = url.split('@');
-                if (splitToGetAtSymbol.length != 0) {
-                    const userGitName = splitToGetAtSymbol[0]; // It should be git
-                    const nameLeft = splitToGetAtSymbol[1]; // It should be eg. bitbucket.org:username/repository_name
-                    const splitNameLeft = nameLeft.split(':');
-                    if (splitNameLeft.length != 0) {
-                        const domainName = splitNameLeft[0]; // It should be eg. bitbucket.org / github.com / gitlab.com
-                        const usernameAndRepository = splitNameLeft[1]; // It should be eg. username/repository_name
-                        const splitUsernameAndRepository = usernameAndRepository.split('/');
-                        if (splitUsernameAndRepository.length != 0) {
-                            const username = splitUsernameAndRepository[0];
-                            const repository_name = splitUsernameAndRepository[1];
-                            const repository_name_split = repository_name.split('.');
-                            this.projectName = repository_name;
-                            if (repository_name_split.length != 0) {
-                                this.projectName = repository_name_split[0];
+                // Verify If it HTTP
+                if (url.slice(0, http.length) == http) {
+                    isHTTP = true;
+                    this.urlType = 'HTTP';
+                } else {
+                    // If Not HTTPS / HTTP it could be SSH Maybe
+                    const splitToGetAtSymbol = url.split('@');
+                    if (splitToGetAtSymbol.length != 0) {
+                        const userGitName = splitToGetAtSymbol[0]; // It should be git
+                        const nameLeft = splitToGetAtSymbol[1]; // It should be eg. bitbucket.org:username/repository_name
+                        const splitNameLeft = nameLeft.split(':');
+                        if (splitNameLeft.length != 0) {
+                            const domainName = splitNameLeft[0]; // It should be eg. bitbucket.org / github.com / gitlab.com
+                            const usernameAndRepository = splitNameLeft[1]; // It should be eg. username/repository_name
+                            const splitUsernameAndRepository = usernameAndRepository.split('/');
+                            if (splitUsernameAndRepository.length != 0) {
+                                const username = splitUsernameAndRepository[0];
+                                const repository_name = splitUsernameAndRepository[1];
+                                const repository_name_split = repository_name.split('.');
+                                this.projectName = repository_name;
+                                if (repository_name_split.length != 0) {
+                                    this.projectName = repository_name_split[0];
+                                }
+                                isSSH = true;
+                                this.urlType = 'SSH';
+                            } else {
+                                this.urlType = 'Unknown';
                             }
-                            isSSH = true;
-                            this.urlType = 'SSH';
                         } else {
                             this.urlType = 'Unknown';
                         }
                     } else {
                         this.urlType = 'Unknown';
                     }
+                }
+            }
+
+            // If it HTTP / HTTPS
+            if (isHTTP || isHTTPS) {
+                this.invalidURL = false;
+                let currentURL = this.url;
+                if (isHTTPS) {
+                    currentURL = this.url.slice(https.length);
                 } else {
-                    this.urlType = 'Unknown';
+                    currentURL = this.url.slice(http.length);
+                }
+                const symbolAfterProtocol = '://';
+                currentURL = currentURL.slice(symbolAfterProtocol.length);
+                const splitUsernameWithLink = currentURL.split('@'); // Split example@example.com/etc.git
+                let username = '';
+                let domainIndex = 0;
+                if (splitUsernameWithLink.length >= 1) {
+                    username = splitUsernameWithLink[0];
+                    domainIndex = 1;
+                    if (this.username == null) {
+                        this.username = username;
+                    }
+                }
+
+                const splitDomainWithLink = splitUsernameWithLink[domainIndex].split('.');
+                const hostName = splitDomainWithLink[0]; // Github / Bitbucket / Gitlab
+                const splitTLDwithLink = splitDomainWithLink[1].split('/');
+                const tldName = splitTLDwithLink[0]; // .com / .org / .net
+                const path = splitTLDwithLink.slice(1).join('/');
+
+                const splitURL: Array<string> = url.split('/').slice(2);
+                this.projectName = splitURL[splitURL.length - 1].split('.')[0];
+                this.location = gitRepoStore.concat('/').concat(this.projectName);
+                let linkReplacement = ((this.username) ? this.username : '');
+                linkReplacement = ((this.username) ? (
+                    (this.password) ? linkReplacement.concat(':').concat(this.password) : ''
+                ) : '');
+                const fullDomain = hostName.concat('.').concat(tldName);
+                linkReplacement = (linkReplacement != '') ? linkReplacement.concat('@').concat(fullDomain) : fullDomain;
+                const urlFirst = ((isHTTP) ? http : https).concat(symbolAfterProtocol);
+                linkReplacement = urlFirst.concat(linkReplacement).concat('/').concat(path).concat('.git');
+                if (username != '' && this.password != null) {
+                    this.url = linkReplacement;
+                }
+                if (this.isRepositotyExist()) {
+                    this.cloned = true;
+                }
+            } else if (isSSH) {
+                this.invalidURL = false;
+                this.location = gitRepoStore.concat('/').concat(this.projectName);
+                if (this.isRepositotyExist()) {
+                    this.cloned = true;
                 }
             }
-        }
-
-        // If it HTTP / HTTPS
-        if (isHTTP || isHTTPS) {
-            this.invalidURL = false;
-            let currentURL = this.url;
-            if (isHTTPS) {
-                currentURL = this.url.slice(https.length);
-            } else {
-                currentURL = this.url.slice(http.length);
-            }
-            const symbolAfterProtocol = '://';
-            currentURL = currentURL.slice(symbolAfterProtocol.length);
-            const splitUsernameWithLink = currentURL.split('@'); // Split example@example.com/etc.git
-            let username = '';
-            let domainIndex = 0;
-            if (splitUsernameWithLink.length >= 1) {
-                username = splitUsernameWithLink[0];
-                domainIndex = 1;
-                if (this.username == null) {
-                    this.username = username;
-                }
-            }
-
-            const splitDomainWithLink = splitUsernameWithLink[domainIndex].split('.');
-            const hostName = splitDomainWithLink[0]; // Github / Bitbucket / Gitlab
-            const splitTLDwithLink = splitDomainWithLink[1].split('/');
-            const tldName = splitTLDwithLink[0]; // .com / .org / .net
-            const path = splitTLDwithLink.slice(1).join('/');
-
-            const splitURL: Array<string> = url.split('/').slice(2);
-            this.projectName = splitURL[splitURL.length - 1].split('.')[0];
-            this.location = gitRepoStore.concat('/').concat(this.projectName);
-            let linkReplacement = ((this.username) ? this.username : '');
-            linkReplacement = ((this.username) ? (
-                (this.password) ? linkReplacement.concat(':').concat(this.password) : ''
-            ) : '');
-            const fullDomain = hostName.concat('.').concat(tldName);
-            linkReplacement = (linkReplacement != '') ? linkReplacement.concat('@').concat(fullDomain) : fullDomain;
-            const urlFirst = ((isHTTP) ? http : https).concat(symbolAfterProtocol);
-            linkReplacement = urlFirst.concat(linkReplacement).concat('/').concat(path).concat('.git');
-            if (username != '' && this.password != null) {
-                this.url = linkReplacement;
-            }
-            if (this.isRepositotyExist()) {
-                this.cloned = true;
-            }
-        } else if (isSSH) {
-            this.invalidURL = false;
-            this.location = gitRepoStore.concat('/').concat(this.projectName);
-            if (this.isRepositotyExist()) {
-                this.cloned = true;
+        } else {
+            if (git.cloned != null) {
+                this.cloned = git.cloned;
             }
         }
     }
@@ -324,5 +334,14 @@ export class Git implements GitModel {
 
     async runScript(script: Script) {
         await script.runScript(null, this.getRepositorySaveLocation());
+    }
+
+    static getAll(): Git[] {
+        const files = recursive(gitStore, ['.gitkeep',]);
+        return files.map((x: any) => {
+            let dataToml: string = fs.readFileSync(x, 'utf-8');
+            let gitModel: GitModel = toml.parse(dataToml);
+            return new Git(gitModel, true);
+        });
     }
 }

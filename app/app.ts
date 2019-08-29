@@ -25,6 +25,7 @@ app.use(function (req: any, res: any, next: any) {
 const node_ssh = require('node-ssh');
 const sshTransfer = new node_ssh();
 const server = require('http').createServer(app);
+let operationCodeGlobal: number = 0;
 const io = require('socket.io')(server, {
     handlePreflightRequest: (req: any, res: any) => {
         const headers: any = {
@@ -136,7 +137,7 @@ app.post('/ssh/save', function (req, res) {
         sshAccount.save();
         res.send(DefaultResponse.success('SSH Account have been saved'));
     } catch (e) {
-        console.log('Error : ' + e);
+        res.send(DefaultResponse.error('Failed Save SSH Account'));
     }
 });
 
@@ -153,6 +154,33 @@ app.post('/git/clone', function (req, res) {
         }
     } catch (e) {
         console.log('Error : ' + e);
+    }
+});
+
+app.get('/git', function (req, res) {
+    try {
+        const gitData: Git[] = Git.getAll();
+        res.send(DefaultResponse.success<Git[]>('Success Get All Git', {
+            data: gitData
+        }));
+    } catch (e) {
+        console.log('Error : ' + e);
+    }
+});
+
+app.post('/git/save', function (req, res) {
+    let git: GitModel;
+    try {
+        git = req.body;
+        const gitData: Git = new Git(git);
+        if (gitData.isInvalidURL()) {
+            res.send(DefaultResponse.error('Failed to Save this Repository'));
+        } else {
+            gitData.createConfigFile();
+            res.send(DefaultResponse.success('Success Save This Repository'));
+        }
+    } catch (e) {
+        res.send(DefaultResponse.error('Error to Save Repository'));
     }
 });
 
