@@ -11,6 +11,7 @@ export interface OperationLogInterface {
     name: string;
     description: string;
     status: 'error' | 'normal' | 'warning' | 'danger';
+    finish: boolean;
 }
 
 export class OperationLog implements OperationLogInterface {
@@ -18,12 +19,18 @@ export class OperationLog implements OperationLogInterface {
     description: string;
     name: string;
     status: 'error' | 'normal' | 'warning' | 'danger';
+    finish: boolean;
 
     constructor(operationLog: OperationLogInterface) {
         this.dateTime = operationLog.dateTime;
         this.description = operationLog.description;
         this.name = operationLog.name;
         this.status = operationLog.status;
+        this.finish = operationLog.finish;
+    }
+
+    stop() {
+        this.finish = true;
     }
 }
 
@@ -34,11 +41,27 @@ export class Operation implements OperationInterface {
     operationCode: number;
     running: boolean;
 
-    constructor(operation: Operation) {
+    constructor(operation: OperationInterface) {
         this.log = operation.log;
         this.message = operation.message;
         this.operation = operation.operation;
         this.operationCode = operation.operationCode;
         this.running = operation.running;
+    }
+
+    stop() {
+        this.running = false;
+    }
+
+    setOperationLogFinish(operationLog: OperationLog) {
+        operationLog.stop();
+        const index: number = this.log.indexOf(operationLog);
+        if (typeof index != 'undefined') {
+            this.log[index] = operationLog;
+        }
+    }
+
+    addOperationLog(operationLog: OperationLog) {
+        this.log.push(operationLog);
     }
 }

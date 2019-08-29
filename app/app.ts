@@ -8,6 +8,7 @@ import { SystemAppChecker } from './model/System';
 import { Script } from './model/Script';
 import bodyParser = require('body-parser');
 import express = require('express');
+import { Operation } from './model/Operation';
 
 const {Signale} = require('signale');
 const chalk = require('chalk');
@@ -146,10 +147,18 @@ app.post('/git/clone', function (req, res) {
     try {
         git = req.body;
         const gitData: Git = new Git(git);
+        const operation: Operation = new Operation({
+            operationCode: operationCodeGlobal + 1,
+            operation: 'Git Clone',
+            running: true,
+            message: '',
+            log: []
+        });
         if (gitData.isInvalidURL()) {
+            operation.stop();
             res.send('Cannot Clone This Repository');
         } else {
-            gitData.clone();
+            gitData.clone(operation);
             res.send('Cloning Repository');
         }
     } catch (e) {

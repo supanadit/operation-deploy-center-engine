@@ -2,6 +2,7 @@
 import { archiveStore, gitRepoStore, gitStore } from '../../config/setting';
 import { spawn, spawnSync } from 'child_process';
 import { Script } from './Script';
+import { Operation, OperationLog } from './Operation';
 
 const fs = require('fs');
 const tomlify = require('tomlify-j0.4');
@@ -182,7 +183,7 @@ export class Git implements GitModel {
         return this.getProjectName().concat('.zip');
     }
 
-    clone() {
+    clone(operation: Operation | null = null) {
         if (!this.invalidURL) {
             const commandExecution = spawn('git', ['clone', this.url, this.getRepositorySaveLocation()], {
                 shell: true,
@@ -190,6 +191,16 @@ export class Git implements GitModel {
             // commandExecution.stderr.pipe(process.stderr);
             // commandExecution.stdout.pipe(process.stdout);
             const spinner = ora(`Please wait, Cloning ${this.url}\n`).start();
+            const operationStart: OperationLog = new OperationLog({
+                dateTime: 'Test',
+                description: 'Start Cloning Repository',
+                finish: false,
+                name: 'Cloning Repository',
+                status: 'normal',
+            });
+            if (operation != null) {
+                operation.addOperationLog(operationStart);
+            }
             // if (this.password != null) {
             //     for (let x of this.password.split('').concat('\n')) {
             //         commandExecution.stdin.write(x);
@@ -205,6 +216,9 @@ export class Git implements GitModel {
             //     console.log('stderr: ' + data);
             // });
             commandExecution.on('close', (code: any) => {
+                if (operation != null) {
+                    operation.setOperationLogFinish(operationStart);
+                }
                 if (code == 0) {
                     spinner.succeed(`Success Cloning Repository ${this.url}`);
                     this.cloned = true;
