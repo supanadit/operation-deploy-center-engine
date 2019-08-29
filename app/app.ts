@@ -16,15 +16,35 @@ const client = require('scp2');
 const ora = require('ora');
 // Create a new express application instance
 const app: express.Application = express();
-const node_ssh = require('node-ssh');
-const sshTransfer = new node_ssh();
-
-app.use(bodyParser.json());
-app.use(function (req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*'); // update to match the domain you will make the request from
+app.use(function (req: any, res: any, next: any) {
+    res.header('Access-Control-Allow-Origin', req.headers.origin); // update to match the domain you will make the request from
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
     next();
 });
+const node_ssh = require('node-ssh');
+const sshTransfer = new node_ssh();
+const server = require('http').createServer(app);
+const io = require('socket.io')(server, {
+    handlePreflightRequest: (req: any, res: any) => {
+        const headers: any = {
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Allow-Origin': req.headers.origin, //or the specific origin you want to give access to,
+            'Access-Control-Allow-Credentials': true
+        };
+        res.writeHead(200, headers);
+        res.end();
+    }
+});
+
+io.on('connection', (client: any) => {
+    client.on('test', (data: any) => {
+    });
+    client.on('disconnect', () => { /* … */
+    });
+});
+
+app.use(bodyParser.json());
 app.get('/', function (req, res) {
     res.send('Hello World!');
 });
@@ -248,7 +268,7 @@ setTimeout(function () {
         }
     }
     if (errorListSystemChecker.length == 0) {
-        app.listen(3000, function () {
+        server.listen(3000, function () {
             processStart.success('Engine success started on port 3000');
         });
     } else {
