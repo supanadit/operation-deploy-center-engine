@@ -3,6 +3,7 @@ import { logStore } from '../../config/setting';
 export const fs = require('fs');
 export const moment = require('moment');
 export const tomlify = require('tomlify-j0.4');
+export const dateTimeFormatOperation: string = 'YYYY-MM-DD HH:mm:ss';
 let operationCodeGlobal = 0;
 let operationIncrementalProcess = 0;
 
@@ -30,14 +31,14 @@ export class OperationLog implements OperationLogInterface {
     finish: boolean = false;
 
     constructor(name: string, description: string, status: 'error' | 'normal' | 'warning' | 'danger') {
-        this.startTime = moment().format('MMMM Do YYYY, h:mm:ss a');
+        this.startTime = moment().format(dateTimeFormatOperation);
         this.description = description;
         this.name = name;
         this.status = status;
     }
 
     stop() {
-        this.stopTime = moment().format('MMMM Do YYYY, h:mm:ss a');
+        this.stopTime = moment().format(dateTimeFormatOperation);
         this.finish = true;
     }
 }
@@ -50,18 +51,27 @@ export class Operation implements OperationInterface {
     running: boolean = true;
     startTime: string = '';
     stopTime: string = '';
+    notFinishOperation: number = 0;
+    finishOperation: number = 0;
+    totalOperation: number = 0;
 
     constructor(operation: string, message: string) {
         operationCodeGlobal = operationCodeGlobal + 1;
         this.operation = operation;
         this.operationCode = operationCodeGlobal;
         this.message = message;
-        this.startTime = moment().format('MMMM Do YYYY, h:mm:ss a');
+        this.startTime = moment().format(dateTimeFormatOperation);
         operationIncrementalProcess += 1;
     }
 
     stop() {
-        this.stopTime = moment().format('MMMM Do YYYY, h:mm:ss a');
+        this.stopTime = moment().format(dateTimeFormatOperation);
+        for (let x of this.log) {
+            if (x.finish) {
+                this.notFinishOperation = this.notFinishOperation - 1;
+                this.finishOperation = this.finishOperation + 1;
+            }
+        }
         this.running = false;
         const toml = tomlify.toToml(this, {space: 2});
         const nameLog = this.operation.split(' ').map((x: string) => {
@@ -77,6 +87,8 @@ export class Operation implements OperationInterface {
     addOperationLog(name: string, description: string, status: 'error' | 'normal' | 'warning' | 'danger' = 'normal'): OperationLog {
         const operationLog: OperationLog = new OperationLog(name, description, status);
         this.log.push(operationLog);
+        this.totalOperation = this.log.length;
+        this.notFinishOperation = this.log.length;
         return operationLog;
     }
 
@@ -86,5 +98,9 @@ export class Operation implements OperationInterface {
         if (typeof index != 'undefined') {
             this.log[index] = operationLog;
         }
+    }
+
+    isNotFinish() {
+        return !this.running;
     }
 }
