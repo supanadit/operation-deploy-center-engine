@@ -12,6 +12,7 @@ const toml = require('toml');
 
 export interface GitModel {
     url: string;
+    originalURL: string;
     username?: string;
     password?: string;
     cloned?: boolean;
@@ -21,6 +22,7 @@ export interface GitModel {
 
 export class Git implements GitModel {
     url: string;
+    originalURL: string;
     username?: string;
     password?: string;
 
@@ -33,6 +35,7 @@ export class Git implements GitModel {
 
     constructor(git: GitModel, isFromLocal: boolean = false) {
         this.url = git.url;
+        this.originalURL = git.url;
         this.urlType = '';
         this.projectName = '';
         this.username = git.username;

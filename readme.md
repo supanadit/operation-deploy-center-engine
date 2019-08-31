@@ -39,5 +39,15 @@ This is main engine for any request in Operation X
 - Run `npm run dev`
 
 ## Current API Ready
+- GET `/ssh` List all SSH saved on engine storage
 - POST `/ssh/save` Save SSH Account
 - POST `/git/clone` Clone Repository
+- POST `/git/compress` Compressing Repository
+- POST `/git/remove` Remove Repository and Archive which related to Repository
+- POST `/git/script` Running Script for Specific Repository and Specific Script
+- POST `/git/update` Get update of Repository similar like `git pull`
+- POST `/git/save` Save Repository without Cloning the Repository
+- GET `/git` Get list all saved git from engine storage
+- POST `/run/deploy` Deploy git and run Script at the same time to selected Server with folder Target
+- POST `/upload/zip` Upload archive to selected Server
+- POST `/unzip` Unzip specific Git at the server which has to be uploaded on the Server

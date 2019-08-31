@@ -23,6 +23,7 @@ app.use(function (req: any, res: any, next: any) {
     res.header('Access-Control-Allow-Credentials', 'true');
     next();
 });
+let listOperation: Operation[] = [];
 const node_ssh = require('node-ssh');
 const sshTransfer = new node_ssh();
 const server = require('http').createServer(app);
@@ -133,6 +134,7 @@ app.post('/ssh/save', function (req, res) {
     let ssh: ShellSecureModel;
     try {
         ssh = req.body;
+        const operation: Operation = new Operation('Requesting SSH Save', `Saving ${ssh.host}`);
         const sshAccount: ShellSecure = new ShellSecure(ssh);
         sshAccount.save();
         res.send(DefaultResponse.success('SSH Account have been saved'));
