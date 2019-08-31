@@ -26,7 +26,6 @@ app.use(function (req: any, res: any, next: any) {
 const node_ssh = require('node-ssh');
 const sshTransfer = new node_ssh();
 const server = require('http').createServer(app);
-let operationCodeGlobal: number = 0;
 const io = require('socket.io')(server, {
     handlePreflightRequest: (req: any, res: any) => {
         const headers: any = {
@@ -147,13 +146,7 @@ app.post('/git/clone', function (req, res) {
     try {
         git = req.body;
         const gitData: Git = new Git(git);
-        const operation: Operation = new Operation({
-            operationCode: operationCodeGlobal + 1,
-            operation: 'Git Clone',
-            running: true,
-            message: '',
-            log: []
-        });
+        const operation: Operation = new Operation('Requesting Git Clone', `Git Clone ${git.url}`);
         if (gitData.isInvalidURL()) {
             operation.stop();
             res.send('Cannot Clone This Repository');

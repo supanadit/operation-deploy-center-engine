@@ -48,3 +48,6 @@ ssh/*
 
 archive/*
 !archive/.gitkeep
+
+log/*
+!log/.gitkeep

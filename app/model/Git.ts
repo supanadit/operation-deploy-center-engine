@@ -191,15 +191,9 @@ export class Git implements GitModel {
             // commandExecution.stderr.pipe(process.stderr);
             // commandExecution.stdout.pipe(process.stdout);
             const spinner = ora(`Please wait, Cloning ${this.url}\n`).start();
-            const operationStart: OperationLog = new OperationLog({
-                dateTime: 'Test',
-                description: 'Start Cloning Repository',
-                finish: false,
-                name: 'Cloning Repository',
-                status: 'normal',
-            });
+            let operationStart: OperationLog | null = null;
             if (operation != null) {
-                operation.addOperationLog(operationStart);
+                operationStart = operation.addOperationLog('Cloning Repository', 'Start Cloning Repository');
             }
             // if (this.password != null) {
             //     for (let x of this.password.split('').concat('\n')) {
@@ -216,15 +210,24 @@ export class Git implements GitModel {
             //     console.log('stderr: ' + data);
             // });
             commandExecution.on('close', (code: any) => {
-                if (operation != null) {
+                if (operation != null && operationStart != null) {
                     operation.setOperationLogFinish(operationStart);
                 }
                 if (code == 0) {
+                    if (operation != null) {
+                        operation.addOperationLog('Cloning Repository', `Success Cloning Repository ${this.url}`).stop();
+                    }
                     spinner.succeed(`Success Cloning Repository ${this.url}`);
                     this.cloned = true;
                     this.createConfigFile();
                 } else {
+                    if (operation != null) {
+                        operation.addOperationLog('Cloning Repository', `Failed to Cloning Repository ${this.url}`).stop();
+                    }
                     spinner.fail(`Failed to Cloning Repository ${this.url}`);
+                }
+                if (operation != null) {
+                    operation.stop();
                 }
             });
         }

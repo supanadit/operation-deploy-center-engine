@@ -7,3 +7,5 @@ export const gitRepoStore = './repository';
 export const archiveStore = './archive';
 
 export const scriptsStore = './scripts';
+
+export const logStore = './log';
