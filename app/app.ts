@@ -188,10 +188,13 @@ app.post('/git/compress', function (req, res) {
     try {
         git = req.body;
         const gitData: Git = new Git(git);
+        const operation: Operation = new Operation('Compressing Repository', `Compressing ${git.url}`, socket);
         if (!gitData.isExists() && !gitData.isRepositotyExist()) {
+            operation.addNoProcessOperationLog('Failed Remove Repository', 'This Repository Does not exist');
+            operation.stop();
             res.send('This Repository Does not exist');
         } else {
-            gitData.compress();
+            gitData.compress([], operation);
             res.send('Compressing Repository');
         }
     } catch (e) {

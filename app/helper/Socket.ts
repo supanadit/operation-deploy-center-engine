@@ -13,6 +13,10 @@ export class Socket {
             this.clientSocket.on('get-operation', () => {
                 this.clientSocket.emit('operation', JSON.stringify(this.getListOperationMemory()));
             });
+            this.clientSocket.on('clear-operation', () => {
+                this.listOperationMemory = [];
+                this.reloadListOperationMemory();
+            });
             this.clientSocket.on('disconnect', () => {
             });
         });

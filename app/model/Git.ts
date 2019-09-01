@@ -236,7 +236,7 @@ export class Git implements GitModel {
         }
     }
 
-    compress(specificDirectory: Array<string> = []) {
+    compress(specificDirectory: Array<string> = [], operation: Operation | null = null) {
         if (!this.invalidURL) {
             const compressDirectory = (specificDirectory.length == 0) ? this.getRepositorySaveLocation() : this.getRepositorySaveLocation().concat('/').concat(
                 specificDirectory.join('/')
@@ -247,6 +247,9 @@ export class Git implements GitModel {
                     cwd: compressDirectory,
                 });
                 const spinner = ora(`Please wait, Compressing Repository ${this.url}\n`).start();
+                if (operation != null) {
+                    operation.setOperationLogFinish(operation.addOperationLog('Compressing', `Start Compressing`));
+                }
                 commandExecution.on('close', (code: any) => {
                     if (code == 0) {
                         const currentArchive = compressDirectory.concat('/').concat(this.getArchiveNameOnly());
@@ -255,13 +258,25 @@ export class Git implements GitModel {
                         });
                         moveExecution.on('close', (code: any) => {
                             if (code == 0) {
+                                if (operation != null) {
+                                    operation.setOperationLogFinish(operation.addOperationLog('Success', `Success Compressing Repository`));
+                                }
                                 spinner.succeed(`Success Compressing Repository ${this.url}`);
                             } else {
+                                if (operation != null) {
+                                    operation.setOperationLogFinish(operation.addOperationLog('Failed', `Failed Compressing Repository`));
+                                }
                                 spinner.fail(`Failed to Compressing Repository ${this.url}`);
                             }
                         });
                     } else {
+                        if (operation != null) {
+                            operation.setOperationLogFinish(operation.addOperationLog('Failed', `Failed Compressing Repository`));
+                        }
                         spinner.fail(`Failed to Compressing Repository ${this.url}`);
+                    }
+                    if (operation != null) {
+                        operation.stop();
                     }
                 });
             }
@@ -380,14 +395,12 @@ export class Git implements GitModel {
     createConfigFile(): boolean {
         let result: boolean = false;
         if (!this.invalidURL) {
-            if (!this.isExists()) {
-                try {
-                    let git: Git = this;
-                    const toml = tomlify.toToml(git, {space: 2});
-                    fs.writeFileSync(this.getConfigFileLocation(), toml);
-                } catch (error) {
-                    console.log('Error While Create Config for Git Repository', this.url, 'With Error', error);
-                }
+            try {
+                let git: Git = this;
+                const toml = tomlify.toToml(git, {space: 2});
+                fs.writeFileSync(this.getConfigFileLocation(), toml);
+            } catch (error) {
+                console.log('Error While Create Config for Git Repository', this.url, 'With Error', error);
             }
         }
         return result;
