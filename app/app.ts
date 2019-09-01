@@ -6,9 +6,10 @@ import { DefaultResponse } from './model/ResponseObject';
 import { Deploy, DeployModel } from './model/Deploy';
 import { SystemAppChecker } from './model/System';
 import { Script } from './model/Script';
+import { Operation } from './model/Operation';
 import bodyParser = require('body-parser');
 import express = require('express');
-import { Operation } from './model/Operation';
+import { Socket } from './helper/Socket';
 
 const {Signale} = require('signale');
 const chalk = require('chalk');
@@ -23,7 +24,6 @@ app.use(function (req: any, res: any, next: any) {
     res.header('Access-Control-Allow-Credentials', 'true');
     next();
 });
-let listOperation: Operation[] = [];
 const node_ssh = require('node-ssh');
 const sshTransfer = new node_ssh();
 const server = require('http').createServer(app);
@@ -38,13 +38,7 @@ const io = require('socket.io')(server, {
         res.end();
     }
 });
-
-io.on('connection', (client: any) => {
-    client.on('test', (data: any) => {
-    });
-    client.on('disconnect', () => { /* … */
-    });
-});
+const socket: Socket = new Socket(io);
 
 app.use(bodyParser.json());
 app.get('/', function (req, res) {
@@ -148,7 +142,7 @@ app.post('/git/clone', function (req, res) {
     try {
         git = req.body;
         const gitData: Git = new Git(git);
-        const operation: Operation = new Operation('Requesting Git Clone', `Git Clone ${git.url}`);
+        const operation: Operation = new Operation('Requesting Git Clone', `Git Clone ${git.url}`, socket);
         if (gitData.isInvalidURL()) {
             operation.stop();
             res.send('Cannot Clone This Repository');
@@ -157,7 +151,8 @@ app.post('/git/clone', function (req, res) {
             res.send('Cloning Repository');
         }
     } catch (e) {
-        console.log('Error : ' + e);
+        console.log(e);
+        res.send(DefaultResponse.error<any>('Some Error'));
     }
 });
 
@@ -209,10 +204,13 @@ app.post('/git/remove', function (req, res) {
     try {
         git = req.body;
         const gitData: Git = new Git(git, true);
+        const operation: Operation = new Operation('Remove Repository', `Remove Repository ${git.url}`, socket);
         if (!gitData.isExists() && !gitData.isRepositotyExist()) {
+            operation.addNoProcessOperationLog('Failed Remove Repository', 'This Repository Does not exist');
+            operation.stop();
             res.send('This Repository Does not exist');
         } else {
-            gitData.deleteAll();
+            gitData.deleteAll(operation);
             res.send('Remove Repository');
         }
     } catch (e) {
@@ -265,6 +263,17 @@ app.get('/ssh', function (req, res) {
     res.send(DefaultResponse.success<ShellSecure[]>('Success get all SSH', {
         data: ssh
     }));
+});
+
+app.get('/operation', function (req, res) {
+    try {
+        const operationData: Operation[] = Operation.getListAllOperation();
+        res.send(DefaultResponse.success<Operation[]>('Success Get All Operation', {
+            data: operationData
+        }));
+    } catch (e) {
+        console.log('Error : ' + e);
+    }
 });
 
 CFonts.say('Operation X Engine', {

@@ -218,14 +218,14 @@ export class Git implements GitModel {
                 }
                 if (code == 0) {
                     if (operation != null) {
-                        operation.addOperationLog('Cloning Repository', `Success Cloning Repository ${this.url}`).stop();
+                        operation.setOperationLogFinish(operation.addOperationLog('Cloning Repository', `Success Cloning Repository ${this.url}`));
                     }
                     spinner.succeed(`Success Cloning Repository ${this.url}`);
                     this.cloned = true;
                     this.createConfigFile();
                 } else {
                     if (operation != null) {
-                        operation.addOperationLog('Cloning Repository', `Failed to Cloning Repository ${this.url}`).stop();
+                        operation.setOperationLogFinish(operation.addOperationLog('Cloning Repository', `Failed to Cloning Repository ${this.url}`));
                     }
                     spinner.fail(`Failed to Cloning Repository ${this.url}`);
                 }
@@ -321,31 +321,59 @@ export class Git implements GitModel {
         return result;
     }
 
-    deleteConfigFile(): void {
+    deleteConfigFile(operation: Operation | null = null): void {
         if (this.isExists()) {
             fs.unlinkSync(this.getConfigFileLocation());
+            if (operation != null) {
+                operation.addNoProcessOperationLog('Config', 'Removing Config File');
+            }
+        } else {
+            if (operation != null) {
+                operation.addNoProcessOperationLog('Config', 'Config file not exist');
+            }
         }
     }
 
-    deleteRepository(): void {
+    deleteRepository(operation: Operation | null = null): void {
         if (this.getRepositorySaveLocation()) {
             spawnSync('rm', ['-rf', this.getRepositorySaveLocation()], {
                 shell: true,
             });
+            if (operation != null) {
+                operation.addNoProcessOperationLog('Repository', 'Success remove repository');
+            }
+        } else {
+            if (operation != null) {
+                operation.addNoProcessOperationLog('Repository', 'Repository not exist');
+            }
         }
     }
 
-    deleteArchive(): void {
+    deleteArchive(operation: Operation | null = null): void {
         if (this.isArchiveExist()) {
             fs.unlinkSync(this.getArchiveLocation());
+            if (operation != null) {
+                operation.addNoProcessOperationLog('Archive', 'Success remove archive');
+            }
+        } else {
+            if (operation != null) {
+                operation.addNoProcessOperationLog('Archive', 'Archive not Found');
+            }
         }
     }
 
-    deleteAll(): void {
+    deleteAll(operation: Operation | null = null): void {
         const spinner = ora(`Pleasewait.. Removing ${this.url}\n`).start();
-        this.deleteConfigFile();
-        this.deleteRepository();
-        this.deleteArchive();
+        if (operation != null) {
+            operation.addNoProcessOperationLog('Preparing', 'Prepare to Remove Repository');
+        }
+        this.deleteConfigFile(operation);
+        this.deleteRepository(operation);
+        this.deleteArchive(operation);
+        if (operation != null) {
+            operation.addNoProcessOperationLog('Finish', 'Finish');
+            operation.stop();
+        }
         spinner.succeed(`Success Removing Git ${this.url}`);
     }
 
