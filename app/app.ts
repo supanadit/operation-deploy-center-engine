@@ -6,7 +6,7 @@ import { DefaultResponse } from './model/ResponseObject';
 import { Deploy, DeployModel } from './model/Deploy';
 import { SystemAppChecker } from './model/System';
 import { Script } from './model/Script';
-import { Operation } from './model/Operation';
+import { Log } from './model/Log';
 import bodyParser = require('body-parser');
 import express = require('express');
 import { Socket } from './helper/Socket';
@@ -128,7 +128,7 @@ app.post('/ssh/save', function (req, res) {
     let ssh: ShellSecureModel;
     try {
         ssh = req.body;
-        const operation: Operation = new Operation('Requesting SSH Save', `Saving ${ssh.host}`);
+        const operation: Log = new Log('Requesting SSH Save', `Saving ${ssh.host}`);
         const sshAccount: ShellSecure = new ShellSecure(ssh);
         sshAccount.save();
         res.send(DefaultResponse.success('SSH Account have been saved'));
@@ -137,12 +137,93 @@ app.post('/ssh/save', function (req, res) {
     }
 });
 
+
+app.post('/ssh/remove', function (req, res) {
+    let ssh: ShellSecureModel;
+    try {
+        ssh = req.body;
+        const operation: Log = new Log('Requesting SSH Remove', `Deleting ${ssh.host}`);
+        const sshAccount: ShellSecure = new ShellSecure(ssh);
+        sshAccount.deleteConfigFile(operation);
+        res.send(DefaultResponse.success('SSH Account have been saved'));
+    } catch (e) {
+        res.send(DefaultResponse.error('Failed Save SSH Account'));
+    }
+});
+
+app.post('/ssh/check/directory', function (req, res) {
+    let ssh: ShellSecureModel;
+    const spinner = ora(`Preparing to Check Directory`).start();
+    try {
+        ssh = req.body;
+        const directory = req.body['directory'];
+        const sshAccount: ShellSecure = new ShellSecure(ssh);
+        spinner.text = `Check Directory ${directory} in ${ssh.host}`;
+        sshAccount.checkDirectory(directory).then((ssh) => {
+            spinner.text = 'Getting Directory';
+            ssh.execCommand(`ls ${directory}`, {cwd: '/'}).then(function (result: { stdout: string; stderr: string; }) {
+                if (result.stderr == '') {
+                    spinner.succeed('Success Getting Directory List');
+                    res.send(DefaultResponse.success<Array<string>>('Success Check SSH Directory', {
+                        data: result.stdout.split('\n')
+                    }));
+                } else {
+                    spinner.fail(`${directory} not found in ${ssh.host}`);
+                    res.send(DefaultResponse.error('Directory Not Found'));
+                }
+            });
+        }).catch((error) => {
+            spinner.fail(`Failed Authenticate`);
+            res.send(DefaultResponse.error('Failed Authenticate'));
+        });
+    } catch (e) {
+        spinner.fail(`Something went wrong while checking Directory`);
+        res.send(DefaultResponse.error('Error while Checking Directory'));
+    }
+});
+
+app.post('/git/check/directory', function (req, res) {
+    let git: GitModel;
+    const spinner = ora(`Preparing to Check Directory`).start();
+    try {
+        git = req.body;
+        const directory = req.body['directory'];
+        const gitData: Git = new Git(git, true);
+        spinner.text = `Check Directory ${directory} in Repository ${git.url}`;
+        if (!gitData.isExists()) {
+            const response = `Repository Does not exist`;
+            spinner.fail(response);
+            res.send(DefaultResponse.error(response));
+        } else if (!gitData.isRepositotyExist()) {
+            const response = `Repository need tobe cloned`;
+            spinner.fail(response);
+            res.send(DefaultResponse.error(response));
+        } else {
+            const checkDirectory = gitData.getListDirectory(directory);
+            if (checkDirectory == null) {
+                const response = `Directory ${directory} not Found`;
+                spinner.fail(response);
+                res.send(DefaultResponse.error(response));
+            } else {
+                const response = `Success Listing Repository Directory`;
+                spinner.succeed(response);
+                res.send(DefaultResponse.success<Array<string>>(response, {
+                    data: checkDirectory
+                }));
+            }
+        }
+    } catch (e) {
+        spinner.fail(`Something went wrong while checking Directory`);
+        res.send(DefaultResponse.error('Error while Checking Directory'));
+    }
+});
+
 app.post('/git/clone', function (req, res) {
     let git: GitModel;
     try {
         git = req.body;
         const gitData: Git = new Git(git);
-        const operation: Operation = new Operation('Requesting Git Clone', `Git Clone ${git.url}`, socket);
+        const operation: Log = new Log('Requesting Git Clone', `Git Clone ${git.url}`, socket);
         if (gitData.isInvalidURL()) {
             operation.stop();
             res.send('Cannot Clone This Repository');
@@ -188,7 +269,7 @@ app.post('/git/compress', function (req, res) {
     try {
         git = req.body;
         const gitData: Git = new Git(git);
-        const operation: Operation = new Operation('Compressing Repository', `Compressing ${git.url}`, socket);
+        const operation: Log = new Log('Compressing Repository', `Compressing ${git.url}`, socket);
         if (!gitData.isExists() && !gitData.isRepositotyExist()) {
             operation.addNoProcessOperationLog('Failed Remove Repository', 'This Repository Does not exist');
             operation.stop();
@@ -207,7 +288,7 @@ app.post('/git/remove', function (req, res) {
     try {
         git = req.body;
         const gitData: Git = new Git(git, true);
-        const operation: Operation = new Operation('Remove Repository', `Remove Repository ${git.url}`, socket);
+        const operation: Log = new Log('Remove Repository', `Remove Repository ${git.url}`, socket);
         if (!gitData.isExists() && !gitData.isRepositotyExist()) {
             operation.addNoProcessOperationLog('Failed Remove Repository', 'This Repository Does not exist');
             operation.stop();
@@ -227,10 +308,13 @@ app.post('/git/update', function (req, res) {
     try {
         git = req.body;
         const gitData: Git = new Git(git);
+        const operation: Log = new Log('Update Repository', `Start Updating Repository ${git.url}`, socket);
         if (!gitData.isExists() && !gitData.isRepositotyExist()) {
+            operation.addNoProcessOperationLog('Failed Update Repository', 'This Repository Does not exist');
+            operation.stop();
             res.send('This Repository Does not exist');
         } else {
-            gitData.getRepositoryUpdate();
+            gitData.getRepositoryUpdate(operation);
             res.send('Getting Update');
         }
     } catch (e) {
@@ -270,8 +354,8 @@ app.get('/ssh', function (req, res) {
 
 app.get('/operation', function (req, res) {
     try {
-        const operationData: Operation[] = Operation.getListAllOperation();
-        res.send(DefaultResponse.success<Operation[]>('Success Get All Operation', {
+        const operationData: Log[] = Log.getListAllOperation();
+        res.send(DefaultResponse.success<Log[]>('Success Get All Operation', {
             data: operationData
         }));
     } catch (e) {

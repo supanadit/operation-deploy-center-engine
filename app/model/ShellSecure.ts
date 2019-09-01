@@ -1,6 +1,10 @@
 // Author Supan Adit Pratama <supanadit@gmail.com>
 
 import { sshStore } from '../../config/setting';
+import { Log } from './Log';
+
+const node_ssh = require('node-ssh');
+const ssh = new node_ssh();
 
 const recursive = require('recursive-readdir-synchronous');
 const fs = require('fs');
@@ -28,26 +32,56 @@ export class ShellSecure implements ShellSecureModel {
     }
 
     isExists(): boolean {
-        const files = recursive(sshStore);
-        const allSSH = files.map((x: any) => {
-            const pathSplit = x.split('/');
-            const fileName = pathSplit[pathSplit.length - 1].split('.');
-            return fileName[0];
-        });
-        return allSSH.some((x: any) => x == this.host);
+        let result: boolean = false;
+        if (this.getConfigFileLocation() != '') {
+            result = fs.existsSync(this.getConfigFileLocation());
+        }
+        return result;
     }
 
     save(): boolean {
         let result: boolean = false;
         try {
             let ssh: ShellSecureModel = this;
-            const filename = ssh.host.concat('.toml');
             const toml = tomlify.toToml(ssh, {space: 2});
-            fs.writeFileSync(sshStore.concat('/').concat(filename), toml);
+            fs.writeFileSync(this.getConfigFileLocation(), toml);
         } catch (error) {
             console.log('Error While Saving SSH Account for Host', this.host, 'With Error', error);
         }
         return result;
+    }
+
+    getConfigFileLocation() {
+        let ssh: ShellSecureModel = this;
+        const filename = ssh.host.concat('.toml');
+        return sshStore.concat('/').concat(filename);
+    }
+
+    deleteConfigFile(operation: Log | null = null): void {
+        if (this.isExists()) {
+            fs.unlinkSync(this.getConfigFileLocation());
+            if (operation != null) {
+                operation.addNoProcessOperationLog('Config', 'Removing Config File');
+            }
+        } else {
+            if (operation != null) {
+                operation.addNoProcessOperationLog('Config', 'Config file not exist');
+            }
+        }
+        if (operation != null) {
+            operation.stop();
+        }
+    }
+
+    checkDirectory(directory: string = '/'): Promise<any> {
+        const password = this.password;
+        return ssh.connect({
+            host: this.host,
+            username: this.username,
+            port: this.port,
+            password,
+            tryKeyboard: false,
+        });
     }
 
     static getAutoSSH(ssh: ShellSecureModel): ShellSecure | null {

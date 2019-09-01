@@ -2,7 +2,7 @@
 import { archiveStore, gitRepoStore, gitStore } from '../../config/setting';
 import { spawn, spawnSync } from 'child_process';
 import { Script } from './Script';
-import { Operation, OperationLog } from './Operation';
+import { Log, LogProcess } from './Log';
 
 const fs = require('fs');
 const tomlify = require('tomlify-j0.4');
@@ -186,7 +186,7 @@ export class Git implements GitModel {
         return this.getProjectName().concat('.zip');
     }
 
-    clone(operation: Operation | null = null) {
+    clone(operation: Log | null = null) {
         if (!this.invalidURL) {
             const commandExecution = spawn('git', ['clone', this.url, this.getRepositorySaveLocation()], {
                 shell: true,
@@ -194,7 +194,7 @@ export class Git implements GitModel {
             // commandExecution.stderr.pipe(process.stderr);
             // commandExecution.stdout.pipe(process.stdout);
             const spinner = ora(`Please wait, Cloning ${this.url}\n`).start();
-            let operationStart: OperationLog | null = null;
+            let operationStart: LogProcess | null = null;
             if (operation != null) {
                 operationStart = operation.addOperationLog('Cloning Repository', 'Start Cloning Repository');
             }
@@ -236,7 +236,7 @@ export class Git implements GitModel {
         }
     }
 
-    compress(specificDirectory: Array<string> = [], operation: Operation | null = null) {
+    compress(specificDirectory: Array<string> = [], operation: Log | null = null) {
         if (!this.invalidURL) {
             const compressDirectory = (specificDirectory.length == 0) ? this.getRepositorySaveLocation() : this.getRepositorySaveLocation().concat('/').concat(
                 specificDirectory.join('/')
@@ -291,7 +291,34 @@ export class Git implements GitModel {
         }
     }
 
-    getRepositoryUpdate() {
+    getListDirectory(directory: string = '/'): string[] | null {
+        let result = null;
+        if (!this.invalidURL) {
+            if (this.isExists()) {
+                const pathToFind = this.getRepositorySaveLocation().concat(directory);
+                const command = spawnSync('ls', [pathToFind], {
+                    encoding: 'utf-8',
+                });
+                if (command.status == 0) {
+                    result = [];
+                    const directoryListing = command.stdout.split('\n');
+                    for (let x of directoryListing) {
+                        try {
+                            const check = fs.lstatSync(pathToFind.concat(x));
+                            if (check.isDirectory()) {
+                                result.push(directory.concat(x));
+                            }
+                        } catch (er) {
+                            // console.log(er);
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    getRepositoryUpdate(operation: Log | null = null) {
         if (!this.invalidURL) {
             if (this.isExists()) {
                 const commandExecution = spawn('git', ['pull'], {
@@ -299,11 +326,23 @@ export class Git implements GitModel {
                     cwd: this.getRepositorySaveLocation(),
                 });
                 const spinner = ora(`Getting Update Repository${this.url}\n`).start();
+                if (operation != null) {
+                    operation.setOperationLogFinish(operation.addOperationLog('Updating Repository', `Getting Update Repository`));
+                }
                 commandExecution.on('close', (code: any) => {
                     if (code == 0) {
                         spinner.succeed(`Repository ${this.url} have been updated`);
+                        if (operation != null) {
+                            operation.setOperationLogFinish(operation.addOperationLog('Success', `Success get update Repository`));
+                        }
                     } else {
                         spinner.fail(`Failed to Get an Update Repository ${this.url}`);
+                        if (operation != null) {
+                            operation.setOperationLogFinish(operation.addOperationLog('Failed', `Failed get update Repository`));
+                        }
+                    }
+                    if (operation != null) {
+                        operation.stop();
                     }
                 });
             }
@@ -336,7 +375,7 @@ export class Git implements GitModel {
         return result;
     }
 
-    deleteConfigFile(operation: Operation | null = null): void {
+    deleteConfigFile(operation: Log | null = null): void {
         if (this.isExists()) {
             fs.unlinkSync(this.getConfigFileLocation());
             if (operation != null) {
@@ -349,7 +388,7 @@ export class Git implements GitModel {
         }
     }
 
-    deleteRepository(operation: Operation | null = null): void {
+    deleteRepository(operation: Log | null = null): void {
         if (this.getRepositorySaveLocation()) {
             spawnSync('rm', ['-rf', this.getRepositorySaveLocation()], {
                 shell: true,
@@ -364,7 +403,7 @@ export class Git implements GitModel {
         }
     }
 
-    deleteArchive(operation: Operation | null = null): void {
+    deleteArchive(operation: Log | null = null): void {
         if (this.isArchiveExist()) {
             fs.unlinkSync(this.getArchiveLocation());
             if (operation != null) {
@@ -377,7 +416,7 @@ export class Git implements GitModel {
         }
     }
 
-    deleteAll(operation: Operation | null = null): void {
+    deleteAll(operation: Log | null = null): void {
         const spinner = ora(`Pleasewait.. Removing ${this.url}\n`).start();
         if (operation != null) {
             operation.addNoProcessOperationLog('Preparing', 'Prepare to Remove Repository');

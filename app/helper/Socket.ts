@@ -1,9 +1,9 @@
-import { Operation } from '../model/Operation';
+import { Log } from '../model/Log';
 
 export class Socket {
     clientSocket: any;
     globalSocket: any;
-    listOperationMemory: Operation[] = [];
+    listOperationMemory: Log[] = [];
 
     constructor(io: any) {
         this.globalSocket = io;
@@ -22,13 +22,13 @@ export class Socket {
         });
     }
 
-    updateOperationMemory(operation: Operation, index: number) {
+    updateOperationMemory(operation: Log, index: number) {
         this.listOperationMemory[index] = operation;
         this.reloadListOperationMemory();
     }
 
     getListOperationMemory() {
-        return this.listOperationMemory.map((x: Operation) => x.get());
+        return this.listOperationMemory.map((x: Log) => x.get());
     }
 
     reloadListOperationMemory() {
