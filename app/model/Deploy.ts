@@ -104,7 +104,7 @@ export class Deploy implements DeployModel {
             if (log != null) {
                 log.addNoProcessOperationLog('Compressing', 'Compressing Repository');
             }
-            git.compressSync();
+            git.compressSync(this.targetCompress.split('/'));
             spinner.text = `Deploy ${git.url} to Server ${shellSecure.host} with Folder ${this.target}`;
             if (log != null) {
                 log.addNoProcessOperationLog('Preparing', 'Prepare to Deploy');
