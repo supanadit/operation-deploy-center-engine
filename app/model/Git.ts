@@ -283,10 +283,20 @@ export class Git implements GitModel {
         }
     }
 
-    compressSync() {
+    compressSync(specificDirectory: Array<string> = []) {
         if (!this.invalidURL) {
             if (this.isExists()) {
-                spawnSync('zip', ['-r', this.getArchiveLocation(), this.getRepositorySaveLocation()]);
+                const compressDirectory = (specificDirectory.length == 0) ? this.getRepositorySaveLocation() : this.getRepositorySaveLocation().concat('/').concat(
+                    specificDirectory.join('/')
+                );
+                const command = spawnSync('zip', ['-r', this.getArchiveNameOnly(), '.'], {
+                    cwd: compressDirectory,
+                    encoding: 'utf-8'
+                });
+                const currentArchive = compressDirectory.concat('/').concat(this.getArchiveNameOnly());
+                const moveExecution = spawnSync('mv', [currentArchive, this.getArchiveLocation()], {
+                    shell: true,
+                });
             }
         }
     }

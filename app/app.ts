@@ -62,6 +62,22 @@ app.post('/run/deploy', function (req, res) {
     }
 });
 
+app.post('/standard/deploy', function (req, res) {
+    const operation: Log = new Log('Starting Standard Deploy', `Standard Deploy`, socket);
+    try {
+        const deployModel: DeployModel = req.body;
+        if (deployModel != null) {
+            const deploy: Deploy = new Deploy(deployModel);
+            deploy.standardDeploy(operation);
+        }
+        res.send('Deploy');
+    } catch (e) {
+        operation.addNoProcessOperationLog('Failed', 'Failed to Deploy', 'error');
+        operation.stop();
+        console.log('Error : ' + e);
+    }
+});
+
 app.post('/unzip', function (req, res) {
     try {
         const data = req.body;
