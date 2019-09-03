@@ -187,6 +187,9 @@ app.post('/ssh/check/directory', function (req, res) {
                     spinner.fail(`${directory} not found in ${ssh.host}`);
                     res.send(DefaultResponse.error('Directory Not Found'));
                 }
+            }).catch((error: any) => {
+                spinner.fail(`Failed Authenticate`);
+                res.send(DefaultResponse.error('Failed Authenticate'));
             });
         }).catch((error) => {
             spinner.fail(`Failed Authenticate`);
