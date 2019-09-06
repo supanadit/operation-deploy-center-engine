@@ -2,11 +2,17 @@ import { ShellSecure, ShellSecureModel } from './ShellSecure';
 import { Git, GitModel } from './Git';
 import { ScriptInterface } from './Script';
 import { Log } from './Log';
+import { deployHistory, gitStore } from '../../config/setting';
 
 const ora = require('ora');
 const node_ssh = require('node-ssh');
 const ssh = new node_ssh();
 const client = require('scp2');
+export const fs = require('fs');
+export const moment = require('moment');
+export const tomlify = require('tomlify-j0.4');
+const recursive = require('recursive-readdir-synchronous');
+const toml = require('toml');
 
 export interface DeployModel {
     ssh: ShellSecureModel;
@@ -15,6 +21,17 @@ export interface DeployModel {
     targetCompress: string;
     scriptLocal?: ScriptInterface;
     scriptRemote?: ScriptInterface;
+}
+
+export interface DeployHistoryModel {
+    ssh: {
+        host: string;
+    };
+    git: {
+        url: string;
+    }
+    target: string;
+    targetCompress: string;
 }
 
 export class Deploy implements DeployModel {
@@ -91,6 +108,7 @@ export class Deploy implements DeployModel {
             const password = shellSecure.password;
             const target = this.target;
             const spinner = ora(`Getting Update ${git.url}`).start();
+            const deploy = this;
             if (log != null) {
                 log.addNoProcessOperationLog('Getting Update', 'Updating Repository');
             }
@@ -148,6 +166,7 @@ export class Deploy implements DeployModel {
                                     ssh.execCommand(`rm ${git.getArchiveNameOnly()}`, {cwd: target}).then(function (result: { stdout: string; stderr: string; }) {
                                         spinner.succeed(`Success Deploy ${git.url} to Server ${shellSecure.host}`);
                                         if (log != null) {
+                                            deploy.save();
                                             log.addNoProcessOperationLog('Success', 'Finish Deploying');
                                             log.stop();
                                         }
@@ -185,5 +204,42 @@ export class Deploy implements DeployModel {
                 log.stop();
             }
         }
+    }
+
+    save() {
+        const date = moment().format('YYYYMMDDHHmmss');
+        const fileName = date.concat('-').concat(this.ssh.host).concat('.toml');
+        const location = deployHistory.concat('/').concat(fileName);
+        const savedContent = {
+            ssh: {
+                host: this.ssh.host,
+            },
+            git: {
+                url: this.git.url,
+            },
+            target: this.target,
+            targetCompress: this.targetCompress,
+        };
+        const toml = tomlify.toToml(savedContent, {space: 2});
+        fs.writeFileSync(location, toml);
+    }
+
+    static getAll(): Deploy[] {
+        const files = recursive(deployHistory, ['.gitkeep',]);
+        return files.map((x: any) => {
+            let dataToml: string = fs.readFileSync(x, 'utf-8');
+            let deployHistoryModel: DeployHistoryModel = toml.parse(dataToml);
+            const deployModel: DeployModel = {
+                ssh: {
+                    host: deployHistoryModel.ssh.host,
+                },
+                git: {
+                    url: deployHistoryModel.git.url,
+                },
+                target: deployHistoryModel.target,
+                targetCompress: deployHistoryModel.targetCompress,
+            };
+            return new Deploy(deployModel);
+        });
     }
 }

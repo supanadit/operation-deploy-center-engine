@@ -12,7 +12,7 @@ const toml = require('toml');
 
 export interface GitModel {
     url: string;
-    originalURL: string;
+    originalURL?: string;
     username?: string;
     password?: string;
     cloned?: boolean;

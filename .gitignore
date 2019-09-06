@@ -43,11 +43,17 @@ repository/*
 account/*
 !account/.gitkeep
 
-ssh/*
-!ssh/.gitkeep
+account/ssh/*
+!account/ssh/.gitkeep
 
 archive/*
 !archive/.gitkeep
 
 log/*
 !log/.gitkeep
+
+history/*
+!history/.gitkeep
+
+history/deploy/*
+!history/deploy/.gitkeep

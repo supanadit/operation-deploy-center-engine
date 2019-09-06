@@ -49,6 +49,18 @@ app.get('/test', function (req, res) {
     // This End Point just to use any of action for test you need as developer and see the result on CONSOLE
     res.send('You Just Called Test ?');
 });
+
+app.get('/deploy/history', function (req, res) {
+    try {
+        const deployHistory: Deploy[] = Deploy.getAll();
+        res.send(DefaultResponse.success<Deploy[]>('Success', {
+            data: deployHistory,
+        }));
+    } catch (e) {
+        console.log('Error : ' + e);
+    }
+});
+
 app.post('/run/deploy', function (req, res) {
     try {
         const deployModel: DeployModel = req.body;

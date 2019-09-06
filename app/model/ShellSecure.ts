@@ -13,16 +13,16 @@ const toml = require('toml');
 
 export interface ShellSecureModel {
     host: string;
-    username: string;
-    password: string;
-    port: string;
+    username?: string;
+    password?: string;
+    port?: string;
 }
 
 export class ShellSecure implements ShellSecureModel {
     host: string;
-    password: string;
-    port: string;
-    username: string;
+    password?: string;
+    port?: string;
+    username?: string;
 
     constructor(ssh: ShellSecureModel) {
         this.host = ssh.host;
