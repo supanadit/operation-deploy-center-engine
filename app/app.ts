@@ -394,6 +394,17 @@ app.get('/operation', function (req, res) {
     }
 });
 
+app.get('/script', function (req, res) {
+    try {
+        const scripts: Script[] = Script.getAll();
+        res.send(DefaultResponse.success<Script[]>('Success Get All Operation', {
+            data: scripts
+        }));
+    } catch (e) {
+        console.log('Error : ' + e);
+    }
+});
+
 CFonts.say('Operation X Engine', {
     font: 'block',
 });

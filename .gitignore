@@ -57,3 +57,6 @@ history/*
 
 history/deploy/*
 !history/deploy/.gitkeep
+
+scripts/*
+!scripts/.gitkeep

@@ -1,4 +1,5 @@
-import { scriptsStore } from "../../config/setting";
+import { deployHistory, scriptsStore } from '../../config/setting';
+import { DeployHistoryModel, DeployModel } from './Deploy';
 
 const spawn = require('await-spawn');
 
@@ -7,10 +8,11 @@ const fs = require('fs');
 const tomlify = require('tomlify-j0.4');
 const toml = require('toml');
 const ora = require('ora');
+const recursive = require('recursive-readdir-synchronous');
 
 export const COMPRESS_THIS: SystemIdentificationCode = {
-    code: "COMPRESS_THIS",
-    description: "The System will Automatically ZIP the Folder and Move to Archive Folder"
+    code: 'COMPRESS_THIS',
+    description: 'The System will Automatically ZIP the Folder and Move to Archive Folder'
 };
 export const LIST_SYSTEM_IDENTIFICATION_CODE: Array<SystemIdentificationCode> = [
     COMPRESS_THIS,
@@ -46,7 +48,7 @@ export class Script implements ScriptInterface {
     }
 
     getLocationFile(): string {
-        return scriptsStore.concat('/').concat(this.name).concat(".toml");
+        return scriptsStore.concat('/').concat(this.name).concat('.toml');
     }
 
     isExist(): boolean {
@@ -65,7 +67,7 @@ export class Script implements ScriptInterface {
         return result;
     }
 
-    async runScript(spinner = null, parentDirectory = "") {
+    async runScript(spinner = null, parentDirectory = '') {
         const name = this.name;
         const command = this.command;
         const main = async () => {
@@ -80,11 +82,11 @@ export class Script implements ScriptInterface {
             let countedSuccess = 0;
             for (let operation of command) {
                 countedOperation += 1;
-                const commandSplit = operation.command.split(" ");
+                const commandSplit = operation.command.split(' ');
                 const firstAction = commandSplit[0];
-                const messageIndicator = (operation.description != null) ? operation.description : "Try ".concat(firstAction);
-                spinnerData.color = "cyan";
-                spinnerData.text = messageIndicator.concat(" ").concat(`${countedOperation} of ${totalOperation}`);
+                const messageIndicator = (operation.description != null) ? operation.description : 'Try '.concat(firstAction);
+                spinnerData.color = 'cyan';
+                spinnerData.text = messageIndicator.concat(' ').concat(`${countedOperation} of ${totalOperation}`);
                 await timeout(timeoutTime);
                 let paramAction: Array<string> = [];
                 if (commandSplit.length >= 1) {
@@ -92,11 +94,11 @@ export class Script implements ScriptInterface {
                 }
                 let commandExecution: any;
                 let runInDirectory: string | null = null;
-                if (parentDirectory != "") {
+                if (parentDirectory != '') {
                     if (operation.directory == null) {
                         runInDirectory = parentDirectory;
                     } else {
-                        runInDirectory = parentDirectory.concat("/").concat(operation.directory.join("/"))
+                        runInDirectory = parentDirectory.concat('/').concat(operation.directory.join('/'));
                     }
                 }
 
@@ -112,19 +114,19 @@ export class Script implements ScriptInterface {
                         });
                     }
                     countedSuccess += 1;
-                    spinnerData.color = "green";
-                    spinnerData.text = "Success ".concat((operation.description != null) ? operation.description : firstAction);
+                    spinnerData.color = 'green';
+                    spinnerData.text = 'Success '.concat((operation.description != null) ? operation.description : firstAction);
                     await timeout(timeoutTime);
                 } catch (error) {
                     countedError += 1;
-                    spinnerData.color = "red";
-                    spinnerData.text = "Failed ".concat((operation.description != null) ? operation.description : firstAction);
+                    spinnerData.color = 'red';
+                    spinnerData.text = 'Failed '.concat((operation.description != null) ? operation.description : firstAction);
                     await timeout(timeoutTime);
                 }
             }
             const finnishMessage = `Finish run script ${name} with ${countedSuccess} success, ${countedError} error of Total ${totalOperation} operation`;
             if (spinner == null) {
-                spinnerData.color = "green";
+                spinnerData.color = 'green';
                 spinnerData.succeed(finnishMessage);
             } else {
                 spinnerData.text = finnishMessage;
@@ -142,5 +144,14 @@ export class Script implements ScriptInterface {
             script = new Script(scriptModel);
         }
         return script;
+    }
+
+    static getAll(): Script[] {
+        const files = recursive(scriptsStore, ['.gitkeep',]);
+        return files.map((x: any) => {
+            let dataToml: string = fs.readFileSync(x, 'utf-8');
+            let scriptInterface: ScriptInterface = toml.parse(dataToml);
+            return new Script(scriptInterface);
+        });
     }
 }
