@@ -61,12 +61,13 @@ app.get('/deploy/history', function (req, res) {
     }
 });
 
-app.post('/run/deploy', function (req, res) {
+app.post('/script/deploy', function (req, res) {
+    const operation: Log = new Log('Starting Script Deploy', `Script Deploy`, socket);
     try {
         const deployModel: DeployModel = req.body;
         if (deployModel != null) {
             const deploy: Deploy = new Deploy(deployModel);
-            deploy.runDeploy();
+            deploy.scriptDeploy(operation);
         }
         res.send('Deploy');
     } catch (e) {

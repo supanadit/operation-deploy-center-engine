@@ -1,5 +1,5 @@
-import { deployHistory, scriptsStore } from '../../config/setting';
-import { DeployHistoryModel, DeployModel } from './Deploy';
+import { scriptsStore } from '../../config/setting';
+import { Log } from './Log';
 
 const spawn = require('await-spawn');
 
@@ -67,11 +67,14 @@ export class Script implements ScriptInterface {
         return result;
     }
 
-    async runScript(spinner = null, parentDirectory = '') {
+    async runScript(spinner = null, parentDirectory = '', log: Log | null = null) {
         const name = this.name;
         const command = this.command;
         const main = async () => {
             const spinnerData = (spinner == null) ? ora(`Running Script ${name}`).start() : spinner;
+            if (log != null) {
+                log.addNoProcessOperationLog('Running Script ', name);
+            }
             const timeout = function (ms: number) {
                 return new Promise(resolve => setTimeout(resolve, ms));
             };
@@ -87,6 +90,9 @@ export class Script implements ScriptInterface {
                 const messageIndicator = (operation.description != null) ? operation.description : 'Try '.concat(firstAction);
                 spinnerData.color = 'cyan';
                 spinnerData.text = messageIndicator.concat(' ').concat(`${countedOperation} of ${totalOperation}`);
+                if (log != null) {
+                    log.addNoProcessOperationLog('Running Script ', messageIndicator.concat(' ').concat(`${countedOperation} of ${totalOperation}`));
+                }
                 await timeout(timeoutTime);
                 let paramAction: Array<string> = [];
                 if (commandSplit.length >= 1) {
@@ -116,11 +122,17 @@ export class Script implements ScriptInterface {
                     countedSuccess += 1;
                     spinnerData.color = 'green';
                     spinnerData.text = 'Success '.concat((operation.description != null) ? operation.description : firstAction);
+                    if (log != null) {
+                        log.addNoProcessOperationLog('Running Script ', 'Success '.concat((operation.description != null) ? operation.description : firstAction));
+                    }
                     await timeout(timeoutTime);
                 } catch (error) {
                     countedError += 1;
                     spinnerData.color = 'red';
                     spinnerData.text = 'Failed '.concat((operation.description != null) ? operation.description : firstAction);
+                    if (log != null) {
+                        log.addNoProcessOperationLog('Running Script ', 'Failed '.concat((operation.description != null) ? operation.description : firstAction));
+                    }
                     await timeout(timeoutTime);
                 }
             }
@@ -130,6 +142,9 @@ export class Script implements ScriptInterface {
                 spinnerData.succeed(finnishMessage);
             } else {
                 spinnerData.text = finnishMessage;
+            }
+            if (log != null) {
+                log.addNoProcessOperationLog(`Script Finish ${name}`, finnishMessage);
             }
         };
         await main();
