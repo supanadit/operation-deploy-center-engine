@@ -1,10 +1,18 @@
 # Operation X Engine
 
-![Operation X Logo](https://i.ibb.co/RgkTNFj/Operation-X-Logo.png)
+![Operation X Logo](http://supanadit.com/wp-content/uploads/2019/09/Operation-X-Logo.png)
 
 ## Description
 
-This is main engine for any request in Operation X
+More than Continuous Integration
+
+## How to setup 
+1. Clone this repository
+3. Make sure `Node JS` have been installed
+4. `npm install`
+5. `npm run dev`
+
+![Show Case](http://supanadit.com/wp-content/uploads/2019/09/operation-x-engine.png)
 
 ## Supported OS
 - Mac OS
