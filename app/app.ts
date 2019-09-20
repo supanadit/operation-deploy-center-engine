@@ -39,7 +39,7 @@ const io = require('socket.io')(server, {
     }
 });
 const socket: Socket = new Socket(io);
-
+// Hello World
 app.use(bodyParser.json());
 app.get('/', function (req, res) {
     res.send('Hello World!');
@@ -412,7 +412,7 @@ CFonts.say('Operation X Engine', {
 
 console.log('Software :', chalk.rgb(255, 255, 255).dim('Auto Engine'));
 console.log('');
-console.log('Original Author : Supan Adit Pratama', chalk.rgb(255, 255, 255).underline('<supanadit@gmail.com>'));
+console.log('Original Author : Supan Adit Pratama', chalk.rgb(255, 255, 255).underline('<email@supanadit.com>'));
 console.log('');
 console.log('Version :', chalk.hex('#FFFFFF').bgBlue(' 1.0 '));
 console.log('');
