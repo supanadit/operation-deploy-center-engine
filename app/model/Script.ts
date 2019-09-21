@@ -27,6 +27,7 @@ export interface ScriptInterface {
     name: string;
     dependency?: Array<string>;
     command: Array<CommandInterface>;
+    description: string;
 }
 
 export interface CommandInterface {
@@ -40,11 +41,13 @@ export class Script implements ScriptInterface {
     name: string;
     dependency?: Array<string>;
     command: Array<CommandInterface>;
+    description: string;
 
     constructor(script: ScriptInterface) {
         this.command = script.command;
         this.dependency = script.dependency;
         this.name = script.name;
+        this.description = script.description;
     }
 
     getLocationFile(): string {
@@ -61,6 +64,7 @@ export class Script implements ScriptInterface {
             let git: ScriptInterface = this;
             const toml = tomlify.toToml(git, {space: 2});
             fs.writeFileSync(this.getLocationFile(), toml);
+            result = true;
         } catch (error) {
             console.log('Error Create Script ', this.name, 'With Error', error);
         }

@@ -58,4 +58,6 @@ More than Continuous Integration
 - GET `/git` Get list all saved git from engine storage
 - POST `/run/deploy` Deploy git and run Script at the same time to selected Server with folder Target
 - POST `/upload/zip` Upload archive to selected Server
+- GET `/script` To Get All Scripts
+- POST `/script/save` Create & Save Script
 - POST `/unzip` Unzip specific Git at the server which has to be uploaded on the Server

@@ -5,7 +5,7 @@ import { Git, GitModel } from './model/Git';
 import { DefaultResponse } from './model/ResponseObject';
 import { Deploy, DeployModel } from './model/Deploy';
 import { SystemAppChecker } from './model/System';
-import { Script } from './model/Script';
+import { Script, ScriptInterface } from './model/Script';
 import { Log } from './model/Log';
 import bodyParser = require('body-parser');
 import express = require('express');
@@ -392,6 +392,7 @@ app.get('/operation', function (req, res) {
         }));
     } catch (e) {
         console.log('Error : ' + e);
+        res.send(DefaultResponse.error('Some Error'));
     }
 });
 
@@ -403,6 +404,28 @@ app.get('/script', function (req, res) {
         }));
     } catch (e) {
         console.log('Error : ' + e);
+    }
+});
+
+app.post('/script/save', function (req, res) {
+    let script: ScriptInterface;
+    const spinner = ora(`Saving Script`).start();
+    try {
+        script = req.body;
+        const scriptData = new Script(script);
+        const saving = scriptData.saveScriptFile();
+        if (saving) {
+            spinner.succeed(`Save File Script ${script.name} Success`);
+        } else {
+            spinner.fail(`Failed to Save Script ${script.name}`);
+        }
+        res.send(DefaultResponse.success<ScriptInterface>('Success', {
+            data: script
+        }));
+    } catch (e) {
+        console.log('Error : ' + e);
+        spinner.fail(`Error while saving script`);
+        res.send(DefaultResponse.error('Some Error'));
     }
 });
 

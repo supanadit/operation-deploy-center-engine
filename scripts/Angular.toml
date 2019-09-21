@@ -1,13 +1,15 @@
 dependency = [
-  "npm",
-  "ng"
+  "npm"
 ]
 name = "Angular"
+description = "Script deployment for Angular"
 
 [[command]]
 command = "npm install"
-description = "Installing Dependencies"
+description = "Download all package"
+directory = []
 
 [[command]]
 command = "ng build"
-description = "Build Angular App"
+description = "Compile Angular"
+directory = []
