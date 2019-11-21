@@ -12,8 +12,6 @@ More than Continuous Integration
 4. `npm install`
 5. `npm run dev`
 
-![Show Case](http://supanadit.com/wp-content/uploads/2019/09/operation-x-engine.png)
-
 ## Supported OS
 - Mac OS
 - Windows
