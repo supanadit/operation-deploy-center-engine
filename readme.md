@@ -1,6 +1,6 @@
 # Operation X Engine
 
-![Operation X Logo](http://supanadit.com/wp-content/uploads/2019/09/Operation-X-Logo.png)
+![Operation X Logo](http://supanadit.com/wp-content/uploads/2019/11/Opeartion-X.png)
 
 ## Description
 
