@@ -19,7 +19,7 @@ More than Continuous Integration
 - Self Hosting
 - Official Hosting
 
-## Available
+## Feature
 - Client Only Mode
 - Client / Server Mode
 - Target Mode ( Soon ) will be available using two method ( Shell Script / Target App ( Golang ))
@@ -35,6 +35,12 @@ More than Continuous Integration
 - Auto Building and Deploy to selected server using ( Target Mode )
 - Create Plugin for Visual Studio Code, PHP Storm, Intellij Idea, Webstorm, Ruby Mine, Rider, Goland, Android Studio, Pycharm, Clion and Sublime Text
 - Currently Support Public GIT Repository Only
+- ORM Integration with Sequelize ( OK )
+- Integration with Octokit ( OK )
+- Get all repository from github
+- Get all only forked repository from github
+- Auto update forked repository from github
+- Delete forder repository from github
 
 ## Step By Step To Setup
 - Clone this Repository
