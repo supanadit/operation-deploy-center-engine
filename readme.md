@@ -41,6 +41,7 @@ More than Continuous Integration
 - Get all only forked repository from github
 - Auto update forked repository from github
 - Delete forder repository from github
+- Documentation
 
 ## Step By Step To Setup
 - Clone this Repository
