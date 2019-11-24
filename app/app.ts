@@ -1,15 +1,17 @@
 // lib/app.ts
 'use strict';
-import { ShellSecure, ShellSecureModel } from './model/ShellSecure';
-import { Git, GitModel } from './model/Git';
-import { DefaultResponse } from './model/ResponseObject';
-import { Deploy, DeployModel } from './model/Deploy';
-import { SystemAppChecker } from './model/System';
-import { Script, ScriptInterface } from './model/Script';
-import { Log } from './model/Log';
+import {ShellSecure, ShellSecureModel} from './model/ShellSecure';
+import {Git, GitModel} from './model/Git';
+import {DefaultResponse} from './model/ResponseObject';
+import {Deploy, DeployModel} from './model/Deploy';
+import {SystemAppChecker} from './model/System';
+import {Script, ScriptInterface} from './model/Script';
+import {Log} from './model/Log';
 import bodyParser = require('body-parser');
 import express = require('express');
-import { Socket } from './helper/Socket';
+import {Socket} from './helper/Socket';
+import {token} from "../config/setting";
+import Octokit = require("@octokit/rest");
 
 const {Signale} = require('signale');
 const chalk = require('chalk');
@@ -39,6 +41,9 @@ const io = require('socket.io')(server, {
     }
 });
 const socket: Socket = new Socket(io);
+const octokit = new Octokit({
+    auth: `token ${token}`
+});
 // Hello World
 app.use(bodyParser.json());
 app.get('/', function (req, res) {
@@ -47,6 +52,9 @@ app.get('/', function (req, res) {
 
 app.get('/test', function (req, res) {
     // This End Point just to use any of action for test you need as developer and see the result on CONSOLE
+    octokit.users.getAuthenticated().then(result => {
+        console.log(result.data);
+    });
     res.send('You Just Called Test ?');
 });
 
