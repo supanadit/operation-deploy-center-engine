@@ -455,14 +455,21 @@ setTimeout(function () {
     processStart.await('Checking System');
     const sshCheck: SystemAppChecker = new SystemAppChecker('ssh', processStart);
     const gitCheck: SystemAppChecker = new SystemAppChecker('git', processStart);
-    const zipCheck: SystemAppChecker = new SystemAppChecker('zip', processStart);
-    const unzipCheck: SystemAppChecker = new SystemAppChecker('unzip', processStart);
-    const listSystemChecker: SystemAppChecker[] = [
+    let listSystemChecker: SystemAppChecker[] = [
         sshCheck,
         gitCheck,
-        zipCheck,
-        unzipCheck,
     ];
+
+    if (process.platform === "win32") {
+        const sevenZip: SystemAppChecker = new SystemAppChecker('7z', processStart);
+        listSystemChecker.push(sevenZip);
+    } else {
+        const zipCheck: SystemAppChecker = new SystemAppChecker('zip', processStart);
+        const unzipCheck: SystemAppChecker = new SystemAppChecker('unzip', processStart);
+        listSystemChecker.push(zipCheck);
+        listSystemChecker.push(unzipCheck);
+    }
+
     let errorListSystemChecker: SystemAppChecker[] = [];
     for (let x of listSystemChecker) {
         x.checkSync();

@@ -40,8 +40,9 @@ More than Continuous Integration
 - Get all repository from github
 - Get all only forked repository from github
 - Auto update forked repository from github
-- Delete forder repository from github
+- Delete folder repository from github
 - Documentation
+- Zip file in windows using 7z
 
 ## Step By Step To Setup
 - Clone this Repository
