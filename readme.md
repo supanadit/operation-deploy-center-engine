@@ -1,4 +1,4 @@
-![Operation X Logo](http://supanadit.com/wp-content/uploads/2019/11/Opeartion-X.png)
+![Operation X Logo](https://supanadit.com/public/storage/image/operation_x_logo.png)
 
 ## Description
 
