@@ -1,5 +1,3 @@
-![Operation X Logo](https://supanadit.com/public/storage/image/operation_x_logo.png)
-
 ## Description
 
 More than Continuous Integration
